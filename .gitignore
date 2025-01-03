@@ -42,6 +42,7 @@ next-env.d.ts
 
 # sonarlint
 /.idea/
+.idea/
 
 # eslint
 eslint.config.mjs
