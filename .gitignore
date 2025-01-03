@@ -46,3 +46,6 @@ next-env.d.ts
 
 # eslint
 eslint.config.mjs
+
+# prettier
+.prettierrc.json
