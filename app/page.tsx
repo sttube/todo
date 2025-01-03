@@ -1,18 +1,55 @@
-import Image from "next/image";
-import Todo from "./components/todo"
+'use client';
+
+import Todo from './components/todo';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid2';
+
+const stage = {
+  p: 2,
+  border: '1px dashed grey',
+  display: 'flex',
+  justifyContent: 'center'
+};
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-  <Todo/>
-    </div>
+    <>
+      <header>
+        <Box sx={{ height: '100px', alignItems: 'center', ...stage }}>
+          Todo List
+        </Box>
+      </header>
+      <main>
+        <Box>
+          <Grid container spacing={2}>
+            <Grid size={{ lg: 3 }}>
+              <Box component="section" sx={stage}>
+                Todo List
+              </Box>
+              <Todo />
+            </Grid>
+            <Grid size={{ lg: 3 }}>
+              <Box component="section" sx={stage}>
+                진행중
+              </Box>
+              <Todo />
+            </Grid>
+            <Grid size={{ lg: 3 }}>
+              <Box component="section" sx={stage}>
+                완료
+              </Box>
+              <Todo />
+            </Grid>
+            <Grid size={{ lg: 3 }}>
+              <Box component="section" sx={stage}>
+                주간보고서
+              </Box>
+              <Todo />
+            </Grid>
+          </Grid>
+        </Box>
+      </main>
+      <footer></footer>
+    </>
   );
 }
