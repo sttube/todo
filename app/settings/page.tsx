@@ -8,47 +8,70 @@ import {
   orderBy,
   query,
   CollectionReference,
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import fireStore from '../../firebase/firestore';
 
 // MUI
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
-import { Button, Typography } from '@mui/material';
-import CheckCircleTwoToneIcon from '@mui/icons-material/CheckCircleTwoTone';
-import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
-import PauseCircleFilledTwoToneIcon from '@mui/icons-material/PauseCircleFilledTwoTone';
-import PostAddIcon from '@mui/icons-material/PostAdd';
+import { Fab, Typography } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
+import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
 
 // custom
 import Todo from '../components/Todo';
 import { TODO } from '../components/Todo_t01';
 
-const stage = {
-  p: 2,
-  border: '1px dashed grey',
+const stageBoxSx = {
+  p: '1 1 0 0',
+  height: '100vh',
+  border: '2px solid rgba(0, 0, 0, 0.12)'
+};
+
+const stageSx = {
+  p: 1,
+  height: 50,
+  borderBottom: '2px solid rgba(0, 0, 0, 0.12)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center'
 };
 
-export default function Settings() {
+export default function Todolist() {
   const [maxId, setMaxId] = useState(0);
   const [todoList, setTodoList] = useState<TODO[]>([]);
+  const [changeTypeList, setChangeTypeList] = useState({});
   const [inProg, setInProg] = useState();
   const [cplt, setCplt] = useState();
+  const stage = ['settings', 'settings', 'settings', 'settings'];
 
   useEffect(() => {
     const getAllDocuments = async () => {
       try {
-        const q = query(collection(fireStore, 'todo'), orderBy('ID', 'desc'));
-        const querySnapshot = await getDocs(q);
+        // todoList 불러오기
+        const qTodo = query(
+          collection(fireStore, 'todo'),
+          orderBy('ID', 'desc')
+        );
+        const querySnapshot = await getDocs(qTodo);
         const docs = querySnapshot.docs.map((doc) => ({
           ...doc.data()
         })) as TODO[];
-        console.log('init : ', docs.length);
         setTodoList(docs); // 상태에 문서 데이터 저장
+
+        // 작업유형 불러오기
+        const docChangeTypeRef = doc(fireStore, 'todo', 'changeType');
+        const docSnapshot = await getDoc(docChangeTypeRef);
+        if (docSnapshot.exists()) {
+          setChangeTypeList(docSnapshot.data() as {});
+        } else {
+          console.error('작업유형을 불러오던 중 오류가 발생하였습니다.');
+        }
       } catch (error) {
         console.error('Error getting documents:', error);
       }
@@ -61,7 +84,7 @@ export default function Settings() {
     setMaxId(todoList[0]?.ID === undefined ? 0 : Number(todoList[0].ID));
   }, [todoList]);
 
-  const onClickStage = async () => {
+  const onClickAdd = async () => {
     try {
       setMaxId(maxId + 1);
       const addItem = {
@@ -104,143 +127,83 @@ export default function Settings() {
     } as CollectionReference<string>);
   };
 
+  const stageIcon = (key) => {
+    let icon;
+
+    switch (key) {
+      case '대기':
+        icon = <PauseCircleOutlineOutlinedIcon />;
+        break;
+      case '진행중':
+        icon = <PlayCircleOutlineOutlinedIcon sx={{ color: '#ffca28' }} />;
+        break;
+      case '완료':
+        icon = <CheckCircleOutlineOutlinedIcon sx={{ color: '#00c853' }} />;
+        break;
+      default:
+        icon = <FactCheckOutlinedIcon sx={{ color: 'primary.main' }} />;
+        break;
+    }
+    return icon;
+  };
+
   return (
     <>
       <main>
-        <Box>
-          <Grid container spacing={2}>
-            <Grid size={{ lg: 3 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
+        <Grid container spacing={2}>
+          {stage ? (
+            stage.map((item, index) => (
+              <Grid key={item} size={{ lg: 3 }}>
                 <Box
-                  component="section"
                   sx={{
-                    ...stage,
-                    width: '100%'
+                    ...stageBoxSx
                   }}
                 >
-                  <PauseCircleFilledTwoToneIcon sx={{ color: 'blue' }} />
-                  <Typography>환경설정</Typography>
-                </Box>
-                <PostAddIcon
-                  color="action"
-                  sx={{
-                    fontSize: 40,
-                    '&:hover': {
-                      cursor: 'pointer' // 마우스 오버 시 포인터 변경
+                  <Box
+                    sx={{
+                      ...stageSx
+                    }}
+                  >
+                    {stageIcon(item)}
+                    <Typography sx={{ ml: 1 }}>{item}</Typography>
+                  </Box>
+                  <Box
+                    data-state={item}
+                    onDragOver={onDragOver}
+                    onDrop={onDrop}
+                    sx={{ height: '100vh' }}
+                  >
+                    {
+                      todoList
+                        .filter((todo) => todo.STATE === item)
+                        .map((todo) => (
+                          <Todo
+                            key={todo.ID}
+                            todo={todo}
+                            setTodoList={setTodoList}
+                            changeTypeList={changeTypeList}
+                          />
+                        )) as React.ReactNode
                     }
-                  }}
-                  onClick={(event) => onClickStage()}
-                />
-              </Box>
-              <Box
-                data-state="대기"
-                sx={{ height: '100vh' }}
-                onDragOver={onDragOver}
-                onDrop={onDrop}
-              >
-                {
-                  todoList
-                    .filter((item) => item.STATE === '대기')
-                    .map((item) => (
-                      <Todo
-                        key={item.ID}
-                        todo={item}
-                        setTodoList={setTodoList}
-                      />
-                    )) as React.ReactNode
-                }
-              </Box>
-            </Grid>
-            <Grid size={{ lg: 3 }}>
-              <Box
-                component="section"
-                sx={{
-                  ...stage
-                }}
-              >
-                <PlayCircleFilledTwoToneIcon sx={{ color: '#fb8c00' }} />
-                <Typography>진행중</Typography>
-              </Box>
-              <Box
-                data-state="진행중"
-                sx={{ height: '100vh' }}
-                onDragOver={onDragOver}
-                onDrop={onDrop}
-              >
-                {
-                  todoList
-                    .filter((item) => item.STATE === '진행중')
-                    .map((item) => (
-                      <Todo
-                        key={item.ID}
-                        todo={item}
-                        setTodoList={setTodoList}
-                      />
-                    )) as React.ReactNode
-                }
-              </Box>
-            </Grid>
-            <Grid size={{ lg: 3 }}>
-              <Box
-                component="section"
-                sx={{
-                  ...stage
-                }}
-              >
-                <CheckCircleTwoToneIcon sx={{ color: '#00c853' }} />
-                <Typography>완료</Typography>
-              </Box>
-              <Box
-                data-state="완료"
-                sx={{ height: '100vh' }}
-                onDragOver={onDragOver}
-                onDrop={onDrop}
-              >
-                {
-                  todoList
-                    .filter((item) => item.STATE === '완료')
-                    .map((item) => (
-                      <Todo
-                        key={item.ID}
-                        todo={item}
-                        setTodoList={setTodoList}
-                      />
-                    )) as React.ReactNode
-                }
-              </Box>
-            </Grid>
-            <Grid size={{ lg: 3 }}>
-              <Box component="section" sx={stage}>
-                주간보고서
-              </Box>
-              <Box
-                sx={{ height: '100vh' }}
-                onDragOver={onDragOver}
-                onDrop={onDrop}
-              >
-                {
-                  todoList
-                    .filter((item) => item.STATE === '주간보고서')
-                    .map((item) => (
-                      <Todo
-                        key={item.ID}
-                        todo={item}
-                        setTodoList={setTodoList}
-                      />
-                    )) as React.ReactNode
-                }
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
+                  </Box>
+                </Box>
+              </Grid>
+            ))
+          ) : (
+            <></>
+          )}
+        </Grid>
       </main>
-      <footer></footer>
+      <footer>
+        <Fab
+          sx={{ position: 'fixed', bottom: 16, left: 16 }}
+          color="primary"
+          aria-label="add"
+          onClick={onClickAdd}
+        >
+          <AddIcon />
+        </Fab>
+      </footer>
     </>
   );
 }
