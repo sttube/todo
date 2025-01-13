@@ -19,6 +19,9 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
 
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
 // custom
 import Todo from '../components/Todo';
 import { TODO } from '../components/Todo_t01';
@@ -28,6 +31,7 @@ export default function Todolist() {
     변수, 상수 및 상태 정의
   **************************************************/
   const [maxId, setMaxId] = useState(0);
+  const [maxStageId, setMaxStageId] = useState([0, 0, 0]);
   const [todoList, setTodoList] = useState([]);
   const [oldTodo, setOldTodo] = useState<TODO[]>([]);
   const [changeTypeList, setChangeTypeList] = useState({});
@@ -130,9 +134,17 @@ export default function Todolist() {
   useEffect(() => {
     if (todoList.length !== 0) {
       setMaxId(Number(todoList[0].ID));
-      console.log(todoList);
+      setMaxStageId([
+        todoList.filter((todo) => todo.STATE === '대기')[0]?.STAGE_ID || 0,
+        todoList.filter((todo) => todo.STATE === '진행중')[0]?.STAGE_ID || 0,
+        todoList.filter((todo) => todo.STATE === '완료')[0]?.STAGE_ID || 0
+      ]);
     }
   }, [todoList]);
+
+  useEffect(() => {
+    console.log(maxStageId);
+  }, [maxStageId]);
 
   // 마지막 수정 후 5초간 입력 없으면 저장
   useEffect(() => {
@@ -165,6 +177,7 @@ export default function Todolist() {
   // };
 
   const onClickAdd = async () => {
+    console.log(maxStageId[0]);
     try {
       setMaxId(maxId + 1);
       const userRef = doc(fireStore, 'todo', 'userId_01');
@@ -172,7 +185,8 @@ export default function Todolist() {
       const addItem = {
         ID: String(maxId + 1),
         STATE: '대기',
-        TITLE: String(maxId + 1)
+        TITLE: String(maxId + 1),
+        STAGE_ID: String(Number(maxStageId[0]) + 1)
       } as TODO;
       await setDoc(
         todoRef,
@@ -213,12 +227,6 @@ export default function Todolist() {
         }
       })
     );
-
-    // setTodoList(
-    //   Object.values(todoList).map((item) =>
-    //     item.ID === id ? { ...item, STATE: state } : item
-    //   )
-    // );
 
     const itemRef = doc(fireStore, 'todo', 'userId_01');
     await updateDoc(itemRef, {

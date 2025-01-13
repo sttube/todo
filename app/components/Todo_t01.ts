@@ -1,5 +1,6 @@
 export type TODO = {
   ID?: string;
+  STAGE_ID?: string;
   TITLE?: string;
   STATE?: string;
   CHANGE_TYPE?: {};
