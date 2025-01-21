@@ -19,12 +19,12 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
 
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useDragLayer } from 'react-dnd';
 
 // custom
-import Todo from '../components/Todo';
-import { TODO } from '../components/Todo_t01';
+import Todo from './Todo';
+import TodoListBox from './TodoListBox';
+import { TODO } from './Todo_T01';
 
 export default function Todolist() {
   /**************************************************
@@ -33,12 +33,9 @@ export default function Todolist() {
   const [maxId, setMaxId] = useState(0);
   const [maxStageId, setMaxStageId] = useState([0, 0, 0]);
   const [todoList, setTodoList] = useState([]);
-  const [oldTodo, setOldTodo] = useState<TODO[]>([]);
-  const [changeTypeList, setChangeTypeList] = useState({});
+  const [changeTypeList, setChangeTypeList] = useState([]);
   const [isEditing, setIsEditing] = useState(false); // 수정여부
   const [updateList, setUpdateList] = useState({}); // 수정여부
-  const [inProg, setInProg] = useState();
-  const [cplt, setCplt] = useState();
   const stage = ['대기', '진행중', '완료', '주간보고서'];
   const SAVE_DELAY = 5000; // 저장딜레이
 
@@ -69,11 +66,6 @@ export default function Todolist() {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
-  };
-
-  const listBoxSx = {
-    height: '100%',
-    flexGrow: 1
   };
 
   const stageIcon = (key) => {
@@ -119,7 +111,9 @@ export default function Todolist() {
         const docChangeTypeRef = doc(fireStore, 'todo', 'changeType');
         const docSnapshot = await getDoc(docChangeTypeRef);
         if (docSnapshot.exists()) {
-          setChangeTypeList(docSnapshot.data() as {});
+          setChangeTypeList(
+            docSnapshot.data()?.typeItem.sort((a, b) => b.ord - a.ord)
+          );
         } else {
           console.error('작업유형 데이터가 없습니다.');
         }
@@ -128,7 +122,7 @@ export default function Todolist() {
       }
     };
 
-    getAllDocuments();
+    void getAllDocuments();
   }, []);
 
   useEffect(() => {
@@ -162,25 +156,18 @@ export default function Todolist() {
   }, [updateList, isEditing]);
 
   useEffect(() => {
+    console.log('update main');
     console.log(updateList || 'null');
   }, [updateList]);
 
   /**************************************************
     EventHandler
   **************************************************/
-  // const onUpdate = () => {
-  //   setUpdateList((prevList) => ({
-  //     ...prevList,
-  //     [todo.ID]: todo
-  //   }));
-  //   setIsEditing(true);
-  // };
 
   const onClickAdd = async () => {
     console.log(maxStageId[0]);
     try {
       setMaxId(maxId + 1);
-      const userRef = doc(fireStore, 'todo', 'userId_01');
       const todoRef = doc(fireStore, 'todo', 'userId_01');
       const addItem = {
         ID: String(maxId + 1),
@@ -202,36 +189,74 @@ export default function Todolist() {
     }
   };
 
-  const onDragStart = (e: React.DragEvent) => {
-    const itemId = e.currentTarget.id;
-    e.dataTransfer.setData('text', itemId);
-    console.log('itemId : ', itemId);
-  };
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    console.log('123');
-  };
-  const onDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const state = e.currentTarget.getAttribute('data-state');
-    const id = e.dataTransfer.getData('text');
-    let targetItem = {};
-
+  // Drag - onDrop 이벤트
+  const onDrop = async (dropItem: TODO, state: string) => {
+    // TodoList의 STATE 변경
     setTodoList((prevList) =>
       prevList.map((item) => {
-        if (item.ID === id) {
-          targetItem = { ...item, STATE: state };
-          return targetItem;
+        if (item.ID === dropItem.ID) {
+          return { ...dropItem, STATE: state };
         } else {
           return item;
         }
       })
     );
 
+    // 변경내용 저장
     const itemRef = doc(fireStore, 'todo', 'userId_01');
     await updateDoc(itemRef, {
-      [id]: { ...targetItem }
+      [dropItem.ID]: { ...dropItem, STATE: state }
     } as CollectionReference<string>);
+  };
+
+  const todoProps = {
+    todoList: todoList,
+    setTodoList: setTodoList,
+    setUpdateList: setUpdateList,
+    setIsEditing: setIsEditing,
+    changeTypeList: changeTypeList,
+    onDrop: onDrop
+  };
+
+  const CustomDragLayer = () => {
+    const { isDragging, itemType, item, initialOffset, currentOffset } =
+      useDragLayer((monitor) => ({
+        isDragging: monitor.isDragging(),
+        itemType: monitor.getItemType(),
+        item: monitor.getItem(),
+        initialOffset: monitor.getSourceClientOffset(),
+        currentOffset: monitor.getClientOffset()
+      }));
+
+    if (!isDragging) return null;
+
+    const offsetX = currentOffset ? currentOffset.x - initialOffset?.x : 0;
+    const offsetY = currentOffset ? currentOffset.y - initialOffset?.y : 0;
+
+    const style = {
+      position: 'absolute',
+      top: offsetY,
+      left: offsetX,
+      pointerEvents: 'none',
+      zIndex: 100,
+      backgroundColor: 'lightblue',
+      borderRadius: '5px',
+      fontSize: '16px',
+      color: 'darkblue'
+    };
+
+    // 드래그중이 아니라면 렌더링 하지 않음
+    if (!isDragging) return null;
+
+    return (
+      <Box
+        sx={{
+          ...style
+        }}
+      >
+        <Todo todo={item} {...todoProps} preview={true} />
+      </Box>
+    );
   };
 
   return (
@@ -242,7 +267,7 @@ export default function Todolist() {
         sx={{ height: 'inherit', overflow: 'hidden' }}
       >
         {stage ? (
-          stage.map((item, index) => (
+          stage.map((item) => (
             <Grid key={item} size={{ lg: 3 }} sx={{ height: '100%' }}>
               <Box
                 sx={{
@@ -257,29 +282,8 @@ export default function Todolist() {
                   {stageIcon(item)}
                   <Typography sx={{ ml: 1 }}>{item}</Typography>
                 </Box>
-                <Box
-                  data-state={item}
-                  onDragOver={onDragOver}
-                  onDrop={onDrop}
-                  sx={{
-                    ...listBoxSx
-                  }}
-                >
-                  {
-                    todoList
-                      .filter((todo) => todo.STATE === item)
-                      .map((todo) => (
-                        <Todo
-                          key={todo.ID}
-                          todo={todo}
-                          setTodoList={setTodoList}
-                          setUpdateList={setUpdateList}
-                          setIsEditing={setIsEditing}
-                          changeTypeList={changeTypeList}
-                        />
-                      )) as React.ReactNode
-                  }
-                </Box>
+                <TodoListBox state={item} todoProps={todoProps} />
+                {/*<CustomDragLayer />*/}
               </Box>
             </Grid>
           ))

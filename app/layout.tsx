@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 import './globals.css';
 import Box from '@mui/material/Box';
 import Navigation from './components/Navigation';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 export default function RootLayout({
   children
@@ -13,32 +15,34 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100vh'
-          }}
-        >
-          <Box sx={{ flexShrink: 0 }}>
-            <Suspense fallback="false">
-              <Navigation />
-            </Suspense>
-          </Box>
+        <DndProvider backend={HTML5Backend}>
           <Box
             sx={{
-              m: 1,
-              p: 1,
-              border: '2px solid rgba(0, 0, 0, 0.12)',
-              borderRadius: 2,
-              flexGrow: 1,
-              height: '100%',
-              overflow: 'hidden'
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100vh'
             }}
           >
-            {children}
+            <Box sx={{ flexShrink: 0 }}>
+              <Suspense fallback="false">
+                <Navigation />
+              </Suspense>
+            </Box>
+            <Box
+              sx={{
+                m: 1,
+                p: 1,
+                border: '2px solid rgba(0, 0, 0, 0.12)',
+                borderRadius: 2,
+                flexGrow: 1,
+                height: '100%',
+                overflow: 'hidden'
+              }}
+            >
+              {children}
+            </Box>
           </Box>
-        </Box>
+        </DndProvider>
       </body>
     </html>
   );

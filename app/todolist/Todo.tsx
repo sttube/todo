@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { TODO } from './Todo_t01';
+import React, { useEffect, useRef, useState } from 'react';
+import { TODO } from './Todo_T01';
 import { doc, CollectionReference, updateDoc } from 'firebase/firestore';
 import fireStore from '../../firebase/firestore';
 
@@ -28,19 +28,28 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ClearIcon } from '@mui/x-date-pickers';
 
+import {
+  DragPreviewImage,
+  useDrag,
+  useDragLayer,
+  DragPreviewOptions
+} from 'react-dnd';
+
+interface TodoProps {
+  todo: Readonly<any>;
+  changeTypeList: Readonly<[]>;
+  setTodoList: React.Dispatch<React.SetStateAction<any>>;
+  setUpdateList: React.Dispatch<React.SetStateAction<any>>;
+  setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 export default function Todo({
   todo,
+  changeTypeList,
   setTodoList,
   setUpdateList,
-  setIsEditing,
-  changeTypeList
-}: {
-  todo: any;
-  setTodoList: any;
-  setUpdateList: any;
-  setIsEditing: any;
-  changeTypeList: {};
-}) {
+  setIsEditing
+}: TodoProps) {
   /**************************************************
     변수, 상수 및 상태 정의
   **************************************************/
@@ -48,16 +57,33 @@ export default function Todo({
   // const [isEditing, setIsEditing] = useState(false); // 수정여부
   const [calOpen, setCalOpen] = useState({ START: false, END: false });
   const SAVE_DELAY = 5000; // 저장딜레이
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const [{ isDragging }, dragRef, previewRef] = useDrag({
+    type: 'BOX', // 드래그 가능한 아이템의 타입
+    item: () => todo,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
+
+  previewRef(null, {});
+
+  // dragRef는 useDrag에서 반환된 콜백형 ref이며 이를 Box의 ref로 전달
+  const dragTargetRef = useRef(null);
+  useEffect(() => {
+    dragRef(dragTargetRef.current); // dragRef를 dragTargetRef에 연결
+  }, [dragRef]);
 
   /**************************************************
     스타일 정의
   **************************************************/
   // 작업타입 Chip Sx
-  const chipSx = (index) => {
+  const chipSx = (id) => {
     return {
-      color: clickedChips[index] ? 'primary.main' : 'grey.400',
-      borderWidth: clickedChips[index] ? '0.15em' : 1,
-      borderColor: clickedChips[index] ? 'primary.main' : 'grey.400',
+      color: clickedChips[id] ? 'primary.main' : 'grey.400',
+      borderWidth: clickedChips[id] ? '0.15em' : 1,
+      borderColor: clickedChips[id] ? 'primary.main' : 'grey.400',
       margin: '0 8px 8px 0'
     };
   };
@@ -102,6 +128,7 @@ export default function Todo({
   **************************************************/
   // updateList에 todo 추가 및 수정여부 업데이트
   const onUpdate = () => {
+    console.log('update');
     setUpdateList((prevList) => ({
       ...prevList,
       [todo.ID]: todo
@@ -146,22 +173,6 @@ export default function Todo({
     onUpdate();
   };
 
-  // 드래그 시작이벤트
-  const onDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = 'move';
-    const itemId = e.currentTarget.id;
-    e.dataTransfer.setData('text', itemId);
-  };
-
-  // 포커스 잃을 때 저장 이벤트
-  // 안쓴다
-  const onBlur = async (e: React.FocusEvent) => {
-    const itemRef = doc(fireStore, 'todo', 'todo_item_' + todo.ID);
-    await updateDoc(itemRef, {
-      ...todo
-    } as CollectionReference<string>);
-  };
-
   // Calendar 오픈 핸들러
   const handleCalendarOpen = (id) => {
     setCalOpen((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -194,35 +205,37 @@ export default function Todo({
   **************************************************/
   // 작업타입 리스트
   const typeList = () => {
-    const list = Object.entries(changeTypeList)
-      .sort(([keyA]: [string, unknown], [keyB]: [string, unknown]) =>
-        keyA.localeCompare(keyB)
-      )
-      .map(([key, value]) => (
+    return changeTypeList.map(
+      (item: { id: number; ord: number; typeName: string }) => (
         <Chip
-          key={key}
-          label={value as string}
+          key={item.id}
+          label={item.typeName}
           variant="outlined"
           size="small"
           sx={{
-            ...chipSx(key)
+            ...chipSx(item.ord)
           }}
-          onClick={() => handleChipClick(key)}
+          onClick={() => handleChipClick(item.id)}
         />
-      ));
-    return list;
+      )
+    );
   };
 
   return (
+    // <Box ref={preview ? dragPreviewRef : null}>
     <Box
+      ref={dragTargetRef}
       id={todo?.ID}
-      draggable
-      onDragStart={onDragStart}
-      // onBlur={onBlur}
       sx={{
         m: 1,
         border: '1px solid #bdbdbd',
-        borderRadius: 1
+        borderColor: isDragging ? 'primary.main' : '#bdbdbd',
+        borderWidth: isDragging ? '2px' : '1px',
+        borderRadius: 1,
+        backgroundColor: 'white',
+        opacity: isDragging ? '1' : '1',
+        // display: isDragging ? 'none' : 'flex',
+        cursor: 'move'
       }}
     >
       <Stack direction="column">
@@ -393,6 +406,7 @@ export default function Todo({
           />
         </Box>
       </Stack>
+      {/*</Box>*/}
     </Box>
   );
 }
