@@ -5,13 +5,13 @@ import React, { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 
 import { Divider } from '@mui/material';
-import TodoType from '@/app/settings/TodoType';
+import TodoTypeListBox from '@/app/settings/TodoTypeListBox';
 
 export default function Settings() {
   return (
     <main>
       <Box>
-        <TodoType />
+        <TodoTypeListBox />
         <Divider />
       </Box>
     </main>

@@ -1,20 +1,11 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { TODO } from './Todo_T01';
-import { doc, CollectionReference, updateDoc } from 'firebase/firestore';
-import fireStore from '../../firebase/firestore';
 
 //MUI
 import Box from '@mui/material/Box';
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Chip,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -28,24 +19,20 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ClearIcon } from '@mui/x-date-pickers';
 
-import {
-  DragPreviewImage,
-  useDrag,
-  useDragLayer,
-  DragPreviewOptions
-} from 'react-dnd';
+import { useSortable } from '@dnd-kit/sortable';
+import { Arguments, CSS } from '@dnd-kit/utilities';
 
 interface TodoProps {
-  todo: Readonly<any>;
-  changeTypeList: Readonly<[]>;
-  setTodoList: React.Dispatch<React.SetStateAction<any>>;
-  setUpdateList: React.Dispatch<React.SetStateAction<any>>;
+  todo: Readonly<TODO>;
+  todoTypeList: Readonly<[]>;
+  setTodoList: React.Dispatch<React.SetStateAction<TODO[]>>;
+  setUpdateList: React.Dispatch<React.SetStateAction<string[]>>;
   setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export default function Todo({
   todo,
-  changeTypeList,
+  todoTypeList,
   setTodoList,
   setUpdateList,
   setIsEditing
@@ -53,31 +40,39 @@ export default function Todo({
   /**************************************************
     변수, 상수 및 상태 정의
   **************************************************/
-  const [clickedChips, setClickedChips] = useState({ ...todo.CHANGE_TYPE }); // 작업유형 클릭여부
+  const [clickedChips, setClickedChips] = useState({ ...todo.todoType }); // 작업유형 클릭여부
   // const [isEditing, setIsEditing] = useState(false); // 수정여부
   const [calOpen, setCalOpen] = useState({ START: false, END: false });
-  const SAVE_DELAY = 5000; // 저장딜레이
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  const [{ isDragging }, dragRef, previewRef] = useDrag({
-    type: 'BOX', // 드래그 가능한 아이템의 타입
-    item: () => todo,
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging()
-    })
-  });
-
-  previewRef(null, {});
-
-  // dragRef는 useDrag에서 반환된 콜백형 ref이며 이를 Box의 ref로 전달
-  const dragTargetRef = useRef(null);
-  useEffect(() => {
-    dragRef(dragTargetRef.current); // dragRef를 dragTargetRef에 연결
-  }, [dragRef]);
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
+    id: todo.id,
+    data: { status: todo.status, compType: 'Item' }
+  } as Arguments<any>);
 
   /**************************************************
     스타일 정의
   **************************************************/
+  const style = {
+    display: 'flex',
+    alignItems: 'center',
+    m: 1,
+    border: '1px solid #bdbdbd',
+    borderColor: isDragging ? 'primary.main' : '#bdbdbd',
+    borderWidth: isDragging ? '2px' : '1px',
+    borderRadius: 1,
+    backgroundColor: 'white',
+    opacity: 1,
+    transform: CSS.Translate.toString(transform),
+    transition,
+    cursor: 'grab'
+  };
   // 작업타입 Chip Sx
   const chipSx = (id) => {
     return {
@@ -99,40 +94,14 @@ export default function Todo({
     useEffect
   **************************************************/
 
-  // useEffect(() => {
-  //   setUpdateList((prevList) => {
-  //     if (!prevList.includes(todo.ID)) {
-  //       return { ...prevList, [todo.ID]: { todo } }; // id가 이미 포함되어 있지 않으면 추가
-  //     }
-  //     return prevList;
-  //   });
-  // }, [todo]);
-
-  // 마지막 수정 후 5초간 입력 없으면 저장
-  // useEffect(() => {
-  //   if (isEditing) {
-  //     const timer = setTimeout(async () => {
-  //       const itemRef = doc(fireStore, 'todo', 'todo_item_' + todo.ID);
-  //       await updateDoc(itemRef, {
-  //         ...todo
-  //       } as CollectionReference<string>);
-  //       setIsEditing(false); // 저장 완료 후 수정여부 상태 리셋
-  //     }, SAVE_DELAY);
-  //
-  //     return () => clearTimeout(timer); // 입력이 이어지면 이전 타이머 취소
-  //   }
-  // }, [todo, isEditing]);
-
   /**************************************************
     EventHandler
   **************************************************/
-  // updateList에 todo 추가 및 수정여부 업데이트
+  // updateList에 업데이트 대상 item 추가 후 수정여부(isEditing) 변경
   const onUpdate = () => {
-    console.log('update');
-    setUpdateList((prevList) => ({
-      ...prevList,
-      [todo.ID]: todo
-    }));
+    setUpdateList((prevList) => {
+      return [...prevList, todo.id];
+    });
     setIsEditing(true);
   };
 
@@ -140,7 +109,7 @@ export default function Todo({
   const onChange = (targetField, value) => {
     setTodoList((prevList) =>
       prevList.map((item) =>
-        item.ID === todo.ID ? { ...item, [targetField]: value } : item
+        item.id === todo.id ? { ...item, [targetField]: value } : item
       )
     );
     onUpdate();
@@ -150,7 +119,7 @@ export default function Todo({
   const handleClear = (targetField) => {
     setTodoList((prevList) =>
       prevList.map((item) =>
-        item.ID === todo.ID ? { ...item, [targetField]: '' } : item
+        item.id === todo.id ? { ...item, [targetField]: '' } : item
       )
     );
     onUpdate();
@@ -158,15 +127,16 @@ export default function Todo({
 
   // 작업타입 Chip 클릭이벤트
   const handleChipClick = (id) => {
+    const newValue = !clickedChips[id];
     setClickedChips((prev) => ({
       ...prev,
-      [id]: !prev[id] // 클릭한 Chip의 상태를 토글
+      [id]: newValue // 클릭한 Chip의 상태를 토글
     }));
 
     setTodoList((prevList) =>
       prevList.map((item) =>
-        item.ID === todo.ID
-          ? { ...item, CHANGE_TYPE: { ...item.CHANGE_TYPE, [id]: true } }
+        item.id === todo.id
+          ? { ...item, todoType: { ...item.todoType, [id]: newValue } }
           : item
       )
     );
@@ -181,39 +151,21 @@ export default function Todo({
   /**************************************************
     사용자 정의 함수
   **************************************************/
-  const taskDvSelector = () => {
-    return (
-      <FormControl fullWidth>
-        <InputLabel id="task-dv"></InputLabel>
-        <Select
-          labelId="task-dv"
-          id="task-dv-select"
-          value={todo.TASK_DV}
-          label="Age"
-          // onChange={handleChange}
-        >
-          <MenuItem value={10}>Ten</MenuItem>
-          <MenuItem value={20}>Twenty</MenuItem>
-          <MenuItem value={30}>Thirty</MenuItem>
-        </Select>
-      </FormControl>
-    );
-  };
 
   /**************************************************
     Element 정의
   **************************************************/
   // 작업타입 리스트
   const typeList = () => {
-    return changeTypeList.map(
-      (item: { id: number; ord: number; typeName: string }) => (
+    return todoTypeList.map(
+      (item: { id: string; ord: number; typeName: string }) => (
         <Chip
           key={item.id}
           label={item.typeName}
           variant="outlined"
           size="small"
           sx={{
-            ...chipSx(item.ord)
+            ...chipSx(item.id)
           }}
           onClick={() => handleChipClick(item.id)}
         />
@@ -223,35 +175,23 @@ export default function Todo({
 
   return (
     // <Box ref={preview ? dragPreviewRef : null}>
-    <Box
-      ref={dragTargetRef}
-      id={todo?.ID}
-      sx={{
-        m: 1,
-        border: '1px solid #bdbdbd',
-        borderColor: isDragging ? 'primary.main' : '#bdbdbd',
-        borderWidth: isDragging ? '2px' : '1px',
-        borderRadius: 1,
-        backgroundColor: 'white',
-        opacity: isDragging ? '1' : '1',
-        // display: isDragging ? 'none' : 'flex',
-        cursor: 'move'
-      }}
-    >
+    <Box ref={setNodeRef} id={todo?.id} sx={{ ...style }}>
       <Stack direction="column">
         <Box sx={{ ...inputBoxSx }}>
-          <Typography
-            sx={{ width: '45px', fontSize: '14px', fontWeight: '600' }}
-          >
-            제목
-          </Typography>
+          <div ref={setActivatorNodeRef} {...listeners}>
+            <Typography
+              sx={{ width: '45px', fontSize: '14px', fontWeight: '600' }}
+            >
+              제목
+            </Typography>
+          </div>
           <TextField
             fullWidth
-            id="TITLE"
+            id="title"
             size="small"
             variant="outlined"
-            value={todo?.TITLE}
-            onChange={(e) => onChange('TITLE', e.target.value)}
+            value={todo?.title}
+            onChange={(e) => onChange('title', e.target.value)}
           />
         </Box>
         <Divider />
@@ -263,7 +203,7 @@ export default function Todo({
           </Typography>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
-              value={dayjs(todo.DTM_START) || null}
+              value={dayjs(todo.dtmStart) || null}
               open={calOpen.START}
               onOpen={() => handleCalendarOpen('START')}
               onClose={() => handleCalendarOpen('START')}
@@ -271,14 +211,14 @@ export default function Todo({
               slotProps={{
                 textField: {
                   size: 'small',
-                  id: 'DTM_START',
+                  id: 'dtmStart',
                   InputProps: {
                     endAdornment: (
                       <>
-                        {todo.DTM_START && (
+                        {todo.dtmStart && (
                           <IconButton
                             edge="end"
-                            onClick={(event) => handleClear('DTM_START')}
+                            onClick={(event) => handleClear('dtmStart')}
                           >
                             <ClearIcon />
                           </IconButton>
@@ -296,7 +236,7 @@ export default function Todo({
               }}
               format="YYYY-MM-DD"
               onChange={(value) =>
-                onChange('DTM_START', value.format('YYYY-MM-DD'))
+                onChange('dtmStart', value.format('YYYY-MM-DD'))
               }
             />
           </LocalizationProvider>
@@ -310,7 +250,7 @@ export default function Todo({
           </Typography>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
-              value={todo.DTM_END ? dayjs(todo.DTM_END) : null}
+              value={todo.dtmEnd ? dayjs(todo.dtmEnd) : null}
               open={calOpen.END}
               onOpen={() => handleCalendarOpen('END')}
               onClose={() => handleCalendarOpen('END')}
@@ -318,14 +258,14 @@ export default function Todo({
               slotProps={{
                 textField: {
                   size: 'small',
-                  id: 'DTM_END',
+                  id: 'dtmEnd',
                   InputProps: {
                     endAdornment: (
                       <>
-                        {todo.DTM_END && (
+                        {todo.dtmEnd && (
                           <IconButton
                             edge="end"
-                            onClick={(event) => handleClear('DTM_END')}
+                            onClick={(event) => handleClear('dtmEnd')}
                           >
                             <ClearIcon />
                           </IconButton>
@@ -343,7 +283,7 @@ export default function Todo({
               }}
               format="YYYY-MM-DD"
               onChange={(value) =>
-                onChange('DTM_END', value.format('YYYY-MM-DD'))
+                onChange('dtmEnd', value.format('YYYY-MM-DD'))
               }
             />
           </LocalizationProvider>
@@ -380,7 +320,7 @@ export default function Todo({
           </Typography>
           <TextField
             id="RMARK"
-            value={todo?.RMARK}
+            value={todo?.rmark}
             fullWidth
             multiline
             rows={10}
@@ -392,9 +332,9 @@ export default function Todo({
             }}
             slotProps={{
               input: {
-                endAdornment: todo.RMARK && (
+                endAdornment: todo.rmark && (
                   <IconButton
-                    onClick={(event) => handleClear('DTM_END')}
+                    onClick={(event) => handleClear('rmark')}
                     edge="end"
                   >
                     <ClearIcon />
@@ -402,11 +342,10 @@ export default function Todo({
                 )
               }
             }}
-            onChange={(e) => onChange('RMARK', e.target.value)}
+            onChange={(e) => onChange('rmark', e.target.value)}
           />
         </Box>
       </Stack>
-      {/*</Box>*/}
     </Box>
   );
 }

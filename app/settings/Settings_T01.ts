@@ -1,5 +1,5 @@
 export type TYPE_ITEM = {
-  id: number;
+  id: string;
   typeName: string;
   ord: number;
 };
