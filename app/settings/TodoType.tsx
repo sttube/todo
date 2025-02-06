@@ -44,8 +44,8 @@ export default function TodoType({
     transform: CSS.Translate.toString(transform),
     transition,
     background: isDragging ? '#e0f7fa' : '#fff',
-    padding: 8,
-    marginBottom: 4,
+    padding: 2,
+    // marginBottom: 4,
     cursor: 'grab'
   };
 

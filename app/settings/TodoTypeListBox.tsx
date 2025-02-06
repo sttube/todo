@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // MUI
 import Box from '@mui/material/Box';
@@ -8,7 +8,6 @@ import AddIcon from '@mui/icons-material/Add';
 import { IconButton, Stack, TextField, Typography } from '@mui/material';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import fireStore from '@/firebase/firestore';
-import { useDrop } from 'react-dnd';
 
 import TodoType from './TodoType';
 import firebase from 'firebase/compat';
@@ -23,7 +22,7 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core';
-import { arrayMove, SortableContext } from '@dnd-kit/sortable';
+import { SortableContext } from '@dnd-kit/sortable';
 
 export default function TodoTypeListBox() {
   /**************************************************
@@ -33,7 +32,6 @@ export default function TodoTypeListBox() {
   const [addChangeType, setAddChangeType] = useState('');
   const [maxId, setMaxId] = useState(0);
   const [maxOrd, setMaxOrd] = useState(0);
-  const parentRef = useRef(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
