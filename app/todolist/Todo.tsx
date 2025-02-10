@@ -21,6 +21,7 @@ import { useFocus } from '@/app/components/FocusContext';
 import { TYPE_ITEM } from '@/app/settings/Settings_T01';
 import { arrayRemove, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import fireStore from '@/firebase/firestore';
+import TodoEditDialog from '@/app/todolist/TodoEditDialog';
 
 /********************************************************************
   [컴포넌트 정보]
@@ -32,11 +33,13 @@ const CustomTypography = styled(Typography)(({ theme }) => ({
   overflow: 'hidden',
   // 원하는 줄 수로 제한
   WebkitLineClamp: 3,
-  p: 3
+  p: 3,
+  whiteSpace: 'pre-line'
 }));
 
 interface TodoProps {
-  todo: Readonly<TODO>;
+  todo: TODO;
+  todoList: TODO[];
   todoTypeList: Readonly<[]>;
   setTodoList: React.Dispatch<React.SetStateAction<TODO[]>>;
   setUpdateList: React.Dispatch<React.SetStateAction<string[]>>;
@@ -49,6 +52,7 @@ interface TodoComponentProps extends TodoProps {
 export default function Todo({
   isOverlay,
   todo,
+  todoList,
   todoTypeList,
   setTodoList,
   setUpdateList,
@@ -58,10 +62,12 @@ export default function Todo({
     변수, 상수 및 상태 정의
   **************************************************/
   const { focusedId, setFocusedId } = useFocus();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [clickedChips, setClickedChips] = useState({ ...todo.todoType }); // 작업유형 클릭여부
   // const [isEditing, setIsEditing] = useState(false); // 수정여부
   const [calOpen, setCalOpen] = useState({ START: false, END: false });
+
   const { attributes, listeners, setActivatorNodeRef, setNodeRef, isDragging } =
     useSortable({
       id: todo.id,
@@ -70,7 +76,6 @@ export default function Todo({
 
   useEffect(() => {
     setIsFocused(focusedId === todo.id || isDragging || isOverlay);
-    console.log('focusedId : ', focusedId);
   }, [isDragging, isOverlay, focusedId]);
 
   /**************************************************
@@ -177,10 +182,17 @@ export default function Todo({
   };
 
   const handleItemClick = (e: React.MouseEvent<HTMLDivElement>, id: string) => {
-    console.log('item : ', id);
     // 아이템 클릭 시 상위 컨테이너의 클릭 이벤트가 발생하지 않도록 중지
     e.stopPropagation();
     setFocusedId(id);
+  };
+
+  const handleEditClick = () => {
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
   };
 
   // 작업유형 제거버튼 클릭 이벤트
@@ -218,8 +230,18 @@ export default function Todo({
     );
   };
 
+  const editProps = {
+    todo: todo,
+    todoList: todoList,
+    todoTypeList: todoTypeList,
+    setTodoList: setTodoList,
+    setUpdateList: setUpdateList,
+    setIsEditing: setIsEditing,
+    focusedId: focusedId,
+    setFocusedId: setFocusedId
+  };
+
   return (
-    // <Box ref={preview ? dragPreviewRef : null}>
     <Box
       id={`${todo.status}_${todo.ord}`}
       component="div"
@@ -244,7 +266,16 @@ export default function Todo({
                 {todo?.title}
               </Typography>
               <Box className="iconBox" sx={{ visibility: 'hidden' }}>
-                <EditIcon sx={{ ...iconBoxSx, mr: 0.5 }} color="disabled" />
+                <EditIcon
+                  sx={{ ...iconBoxSx, mr: 0.5 }}
+                  color="disabled"
+                  onClick={handleEditClick}
+                />
+                <TodoEditDialog
+                  open={dialogOpen}
+                  editProps={editProps}
+                  onClose={handleDialogClose}
+                />
                 <DeleteIcon
                   sx={iconBoxSx}
                   color="disabled"
@@ -252,14 +283,18 @@ export default function Todo({
                 />
               </Box>
             </Stack>
-            <Divider />
+            <Divider sx={{ mt: 1, mb: 1 }} />
             <Stack direction="row">
               <Typography>
                 {todo?.dtmStart} ~ {todo?.dtmEnd}
               </Typography>
             </Stack>
-            <Divider />
-            <CustomTypography>{todo?.rmark}</CustomTypography>
+            <Divider sx={{ mt: 1, mb: 1 }} />
+            <CustomTypography
+              sx={{ color: todo?.rmark ? 'default' : 'grey.400' }}
+            >
+              {todo?.rmark ? todo?.rmark : '내용이 없습니다.'}
+            </CustomTypography>
           </Stack>
         </Box>
       </div>

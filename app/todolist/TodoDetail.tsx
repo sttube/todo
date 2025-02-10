@@ -43,18 +43,6 @@ export default function Todo({
   const [clickedChips, setClickedChips] = useState({ ...todo.todoType }); // 작업유형 클릭여부
   // const [isEditing, setIsEditing] = useState(false); // 수정여부
   const [calOpen, setCalOpen] = useState({ START: false, END: false });
-  const {
-    attributes,
-    listeners,
-    setActivatorNodeRef,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({
-    id: todo.id,
-    data: { status: todo.status, compType: 'Item' }
-  } as Arguments<any>);
 
   /**************************************************
     스타일 정의
@@ -64,14 +52,8 @@ export default function Todo({
     alignItems: 'center',
     m: 1,
     border: '1px solid #bdbdbd',
-    borderColor: isDragging ? 'primary.main' : '#bdbdbd',
-    borderWidth: isDragging ? '2px' : '1px',
     borderRadius: 1,
-    backgroundColor: 'white',
-    opacity: 1,
-    transform: CSS.Translate.toString(transform),
-    transition,
-    cursor: 'grab'
+    backgroundColor: 'white'
   };
   // 작업타입 Chip Sx
   const chipSx = (id) => {

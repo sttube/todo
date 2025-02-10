@@ -167,7 +167,11 @@ export default function Todolist() {
   // todo상태(status)별 ord 업데이트
   useEffect(() => {
     if (todoList.length != 0) {
-      setMaxId(Number(todoList[0].id));
+      const lastItem = todoList.reduce(
+        (prev, curr) => (Number(prev.id) > Number(curr.id) ? prev : curr),
+        todoList[0]
+      );
+      setMaxId(Number(lastItem.id));
 
       setMaxStageId({
         PENDING:
@@ -180,10 +184,6 @@ export default function Todolist() {
     }
   }, [todoList]);
 
-  useEffect(() => {
-    console.log(maxStageId);
-  }, [maxStageId]);
-
   // 마지막 수정 후 2초간 입력 없으면 저장
   useEffect(() => {
     if (isEditing && updateList) {
@@ -191,7 +191,7 @@ export default function Todolist() {
         // 1) 배치 인스턴스 생성
         const batch = writeBatch(fireStore);
 
-        // updateList에 들어있는 todo만 작업등록
+        // 2) updateList에 들어있는 todo만 작업등록
         matchById(todoList, updateList).map((targtItem) => {
           const docRef = doc(
             fireStore,
@@ -220,16 +220,13 @@ export default function Todolist() {
   // targetIdList : 탐색을 원하는 id
   const matchById = (list: TODO[], targetIdList: string[]) => {
     const uniqueList = [...new Set(targetIdList)];
-    const matchList = uniqueList.reduce<TODO[]>((matchList, id) => {
+    return uniqueList.reduce<TODO[]>((matchList, id) => {
       const match = list.find((todo) => todo.id === id);
       if (match) {
         matchList.push(match);
       }
       return matchList;
     }, [] as TODO[]);
-
-    console.log(matchList);
-    return matchList;
   };
 
   /**************************************************
@@ -239,8 +236,8 @@ export default function Todolist() {
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
     setOverlayItem(event.active.data.current.item);
-    console.log('dragstart');
     setFocusedId(event.active.id);
+
     const pointerEvent = event.activatorEvent as PointerEvent;
     setPointerInitialY(pointerEvent.clientY);
   };
@@ -278,7 +275,6 @@ export default function Todolist() {
      *****************************************************************************/
     // 아이템들의 순서를 재배열하는 헬퍼 함수
     const reorderItems = (newOrd: number, list: TODO[]): TODO[] => {
-      console.log('newOrd : ', newOrd);
       return list.map((item) => {
         if (item.id === activeItem.id) {
           return {
@@ -329,12 +325,10 @@ export default function Todolist() {
 
       // 포인터의 좌표가 overItem의 중앙좌표보다 높은 경우
       if (pointerCurrentY < overCenterY) {
-        console.log('Item drop: insert above');
         return overItem.ord + 0.5;
       }
       // 포인터의 좌표가 overItem의 중앙좌표보다 낮은 경우
       else {
-        console.log('Item drop: insert below');
         return overItem.ord - 0.5;
       }
     };
@@ -343,17 +337,14 @@ export default function Todolist() {
     const setNewOrd = () => {
       // [1] 드롭 위치의 status 그룹에 item이 하나도 없을 경우
       if (maxStageId[overStatus] === 0) {
-        console.log('Drop : No Item');
         return getNewOrdForEmptyGroup();
       }
       // [2] ListBox 영역에 드롭하는 경우
       else if (overType === 'ListBox') {
-        console.log('Drop : ListBox');
         return getNewOrdForListBox();
       }
       // [3] Item에 드롭하는 경우
       else if (overType === 'Item') {
-        console.log('Drop : Item');
         return getNewOrdForItem();
       }
       return undefined;
@@ -386,7 +377,6 @@ export default function Todolist() {
 
   // 드래그 취소 시 activeId 초기화
   const handleDragCancel = () => {
-    console.log('Drag cancle');
     setActiveId(null);
     setOverlayItem(null);
   };
@@ -408,7 +398,8 @@ export default function Todolist() {
         ord: maxStageId['PENDING'] + 1
       } as TODO;
 
-      await setDoc(
+      // await setDoc(
+      setDoc(
         todoRef,
         {
           ...addItem
@@ -423,9 +414,9 @@ export default function Todolist() {
   };
 
   //
-  const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // setFocusedId(null);
-  };
+  // const handlePageClick = () => {
+  //   setFocusedId(null);
+  // };
 
   /**************************************************
     Element 정의
