@@ -1,15 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 
 // MUI
-import Box from '@mui/material/Box';
+import Box from "@mui/material/Box";
 
 // React DnD
-import Todo from '@/app/todolist/Todo';
-import { TODO } from '@/app/todolist/Todo_T01';
-import { useDroppable } from '@dnd-kit/core';
-import { Arguments } from '@dnd-kit/utilities';
+import Todo from "@/app/todolist/Todo";
+import { TODO } from "@/app/todolist/Todo_T01";
+import { useDroppable } from "@dnd-kit/core";
 
 /********************************************************************
   [컴포넌트 정보]
@@ -21,45 +20,35 @@ import { Arguments } from '@dnd-kit/utilities';
   스타일 정의
 **************************************************/
 const listBoxSx = {
-  height: '100%',
+  height: "100%",
   flexGrow: 1,
-  backgroundColor: '#f5f5f5',
-  border: '2px solid primary.main'
+  backgroundColor: "#f5f5f5",
+  border: "2px solid primary.main",
 };
 
 export default function TodoListBox({
   status,
   filteredList,
-  todoProps
 }: {
   status: string;
   filteredList: TODO[];
-  todoProps: {
-    todoList: TODO[];
-    todoTypeList: {};
-    setTodoList: React.Dispatch<React.SetStateAction<TODO[]>>;
-    setUpdateList: React.Dispatch<React.SetStateAction<string[]>>;
-    setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
-  };
 }) {
   /**************************************************
     변수, 상수 및 상태 정의
   **************************************************/
   const { setNodeRef } = useDroppable({
     id: status,
-    data: { status: status, compType: 'ListBox' }
-  } as Arguments<any>);
+    data: { status: status, compType: "ListBox" },
+  });
 
   /**************************************************
     DOM 연결과 스타일 적용
   **************************************************/
   return (
     <Box id={status} ref={setNodeRef} sx={listBoxSx}>
-      {
-        filteredList.map((todo: TODO) => (
-          <Todo key={todo.id} todo={todo} {...todoProps} />
-        )) as React.ReactNode
-      }
+      {filteredList.map((todo: TODO) => (
+        <Todo key={todo.id} todo={todo} isOverlay={false} />
+      ))}
     </Box>
   );
 }

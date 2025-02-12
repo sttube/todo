@@ -1,9 +1,12 @@
 export type TODO = {
   id: string;
-  status: string;
+  numId: number;
   ord: number;
+  status: string;
   title?: string;
-  todoType?: {};
+  todoType?: {
+    [key: string]: boolean;
+  };
   taskDv?: string;
   dtmStart?: string;
   dtmEnd?: string;
