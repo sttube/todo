@@ -1,27 +1,24 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import {
+  Box,
   Button,
   Chip,
   Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
+  Rating,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { TODO } from "@/app/todolist/Todo_T01";
-import Box from "@mui/material/Box";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
+import CloseIcon from "@mui/icons-material/Close";
 import { ClearIcon } from "@mui/x-date-pickers";
-import Calendar from "@mui/icons-material/Event";
-import { useTodoStore } from "@/app/todolist/todoStore";
 
+import dayjs from "dayjs";
+import { useTodoStore } from "@/app/todolist/todoStore";
+import { TODO } from "@/app/todolist/Todo_T01";
+import CustomCalendar from "../components/CustomCalendar";
 /********************************************************************
   [컴포넌트 정보]
   todoItem 편집 다이얼로그
@@ -40,8 +37,14 @@ export default function EditTodoDialog({
     **************************************************/
   const [draftTodo, setDraftTodo] = useState(todo);
   const [clickedChips, setClickedChips] = useState<Record<string, boolean>>({}); // 작업유형 클릭여부
-  const { todoList, todoTypeList, setIsEditing, setTodoList, setUpdatedTodos } =
-    useTodoStore();
+  const {
+    todoList,
+    todoTypeList,
+    setIsEditing,
+    setTodoList,
+    setUpdatedTodos,
+    removeTodo,
+  } = useTodoStore();
 
   interface CalOpenState {
     START: boolean;
@@ -66,14 +69,18 @@ export default function EditTodoDialog({
     });
   }, [todo, open]);
 
+  useEffect(() => {
+    onUpdate(draftTodo);
+  }, [draftTodo]);
+
   /**************************************************
       스타일 정의
     **************************************************/
   const style = {
     display: "flex",
     alignItems: "center",
-    m: 2,
     backgroundColor: "white",
+    width: "100%",
   };
   // 작업타입 Chip Sx
   const chipSx = (id: string) => {
@@ -90,16 +97,21 @@ export default function EditTodoDialog({
     p: "10px",
     display: "flex",
     alignItems: "center",
-
-    "&.rmark": {
-      width: "800px",
+    width: "100%",
+    "&.titleBox": {
+      p: 2,
+      backgroundColor: "grey.200",
     },
   };
 
   const typoSx = {
-    width: "45px",
-    fontSize: "14px",
+    mr: 1,
+    textAlign: "center",
+    width: "40px",
+    minWidth: "40px",
+    fontSize: "13px",
     fontWeight: "600",
+    color: "grey.600",
   };
 
   /**************************************************
@@ -107,27 +119,27 @@ export default function EditTodoDialog({
   **************************************************/
   // updateList에 업데이트 대상 item 추가 후 수정여부(isEditing) 변경
   const onUpdate = (todo: TODO) => {
+    setTodoList(
+      todoList.map((item) => {
+        return item.id === todo.id ? todo : item;
+      }),
+    );
+    setDraftTodo(todo);
     setUpdatedTodos(todo);
     setIsEditing(true);
   };
 
   // 내용 수정 이벤트
-  const onChange = (
-    targetField: string,
-    value: string | undefined = undefined,
+  const handleOnChange = <Key extends keyof TODO>(
+    targetField: Key,
+    value: TODO[Key],
   ) => {
-    const updatedList = todoList.map((item) =>
-      item.id === draftTodo.id ? { ...item, [targetField]: value } : item,
-    );
     onUpdate({ ...draftTodo, [targetField]: value });
   };
 
   // 컴포넌트 초기화버튼 클릭이벤트
   const handleClear = (targetField: string) => {
-    const updatedList = todoList.map((item) =>
-      item.id === draftTodo.id ? { ...item, [targetField]: undefined } : item,
-    );
-    onUpdate({ ...draftTodo, [targetField]: undefined });
+    onUpdate({ ...draftTodo, [targetField]: null });
   };
 
   // 작업타입 Chip 클릭이벤트
@@ -138,11 +150,6 @@ export default function EditTodoDialog({
       [id]: newValue, // 클릭한 Chip의 상태를 토글
     }));
 
-    const updatedList = todoList.map((item) =>
-      item.id === draftTodo.id
-        ? { ...item, todoType: { ...item.todoType, [id]: newValue } }
-        : item,
-    );
     onUpdate({
       ...draftTodo,
       todoType: { ...draftTodo.todoType, [id]: newValue },
@@ -154,6 +161,11 @@ export default function EditTodoDialog({
     setCalOpen((prev) => {
       return { ...prev, [id]: !prev[id] };
     });
+  };
+
+  const handleRemoveClick = () => {
+    removeTodo(draftTodo.id);
+    onClose();
   };
 
   /**************************************************
@@ -177,202 +189,69 @@ export default function EditTodoDialog({
     );
   };
 
-  // 작업타입 리스트
-  const removeDialog = () => {
-    return (
-      <Stack direction="column">
-        <Typography>삭제하시겠습니까?</Typography>
-        <Stack direction="row">
-          <Button onClick={() => removeTodo(todo.id)}>예</Button>
-          <Button onClick={() => handleDialogClose("Remove")}>아니오</Button>
-        </Stack>
-      </Stack>
-    );
-  };
+  const marks = [
+    {
+      value: 0,
+      label: "매우낮음",
+    },
+    {
+      value: 25,
+      label: "낮음",
+    },
+    {
+      value: 50,
+      label: "보통",
+    },
+    {
+      value: 75,
+      label: "높음",
+    },
+    {
+      value: 100,
+      label: "매우높음",
+    },
+  ];
+
+  function valuetext(value: number) {
+    const mark = marks.find((m) => m.value === value);
+    return mark ? mark.label : "";
+  }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg">
       <Box id={draftTodo.id} sx={{ ...style }}>
-        <Stack direction="column">
-          <Box sx={{ ...inputBoxSx }}>
-            <Typography sx={typoSx}>제목</Typography>
-            <TextField
-              fullWidth
-              id="title"
-              size="small"
-              variant="standard"
-              value={draftTodo?.title}
-              onChange={(e) => onChange("title", e.target.value)}
+        <Stack direction="column" width="70vw">
+          <Stack className="titleBox" direction="row" sx={{ ...inputBoxSx }}>
+            <Box sx={{ width: "100%" }}>
+              <TextField
+                fullWidth
+                id="title"
+                size="medium"
+                variant="standard"
+                value={draftTodo?.title}
+                placeholder="제목을 입력하세요."
+                sx={{ fontSize: "20px" }}
+                onChange={(e) => handleOnChange("title", e.target.value)}
+              />
+            </Box>
+            <CloseIcon
+              sx={{
+                ml: 2,
+                fontSize: "30px",
+                cursor: "pointer",
+                color: "grey.400",
+                "&:hover": { color: "black" },
+              }}
+              onClick={onClose}
             />
-          </Box>
+          </Stack>
           <Divider />
           <Stack direction="row" sx={{ width: "100%" }}>
-            <Stack direction="column" sx={{ width: "300px" }}>
-              <Box sx={{ ...inputBoxSx }}>
-                <Typography sx={typoSx}>시작일자</Typography>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
-                    value={
-                      draftTodo.dtmStart ? dayjs(draftTodo.dtmStart) : null
-                    }
-                    open={calOpen.START}
-                    onOpen={() => handleCalendarOpen("START")}
-                    onClose={() => handleCalendarOpen("START")}
-                    sx={{ width: "100%" }}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        id: "dtmStart",
-                        InputProps: {
-                          endAdornment: (
-                            <>
-                              {draftTodo.dtmStart && (
-                                <IconButton
-                                  edge="end"
-                                  onClick={() => handleClear("dtmStart")}
-                                >
-                                  <ClearIcon />
-                                </IconButton>
-                              )}
-                              <IconButton
-                                edge="end"
-                                onClick={() => handleCalendarOpen("START")}
-                              >
-                                <Calendar />
-                              </IconButton>
-                            </>
-                          ),
-                        },
-                      },
-                    }}
-                    format="YYYY-MM-DD"
-                    onChange={(value) =>
-                      onChange(
-                        "dtmStart",
-                        value === null ? undefined : value.format("YYYY-MM-DD"),
-                      )
-                    }
-                  />
-                </LocalizationProvider>
-              </Box>
-
-              <Box sx={{ ...inputBoxSx }}>
-                <Typography sx={typoSx}>종료일자</Typography>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
-                    value={draftTodo.dtmEnd ? dayjs(draftTodo.dtmEnd) : null}
-                    open={calOpen.END}
-                    onOpen={() => handleCalendarOpen("END")}
-                    onClose={() => handleCalendarOpen("END")}
-                    sx={{ width: "100%" }}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        id: "dtmEnd",
-                        InputProps: {
-                          endAdornment: (
-                            <>
-                              {draftTodo.dtmEnd && (
-                                <IconButton
-                                  edge="end"
-                                  onClick={() => handleClear("dtmEnd")}
-                                >
-                                  <ClearIcon />
-                                </IconButton>
-                              )}
-                              <IconButton
-                                edge="end"
-                                onClick={() => handleCalendarOpen("END")}
-                              >
-                                <Calendar />
-                              </IconButton>
-                            </>
-                          ),
-                        },
-                      },
-                    }}
-                    format="YYYY-MM-DD"
-                    onChange={(value) =>
-                      onChange(
-                        "dtmEnd",
-                        value === null ? undefined : value.format("YYYY-MM-DD"),
-                      )
-                    }
-                  />
-                </LocalizationProvider>
-              </Box>
-              <Divider />
-              <Box sx={{ ...inputBoxSx }}>
-                <Typography sx={typoSx}>마감기한</Typography>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
-                    value={
-                      draftTodo.dtmDeadLine
-                        ? dayjs(draftTodo.dtmDeadLine)
-                        : null
-                    }
-                    open={calOpen.DEADLINE}
-                    onOpen={() => handleCalendarOpen("DEADLINE")}
-                    onClose={() => handleCalendarOpen("DEADLINE")}
-                    sx={{ width: "100%" }}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        id: "dtmDeadLine",
-                        InputProps: {
-                          endAdornment: (
-                            <>
-                              {draftTodo.dtmDeadLine && (
-                                <IconButton
-                                  edge="end"
-                                  onClick={() => handleClear("dtmDeadLine")}
-                                >
-                                  <ClearIcon />
-                                </IconButton>
-                              )}
-                              <IconButton
-                                edge="end"
-                                onClick={() => handleCalendarOpen("DEADLINE")}
-                              >
-                                <Calendar />
-                              </IconButton>
-                            </>
-                          ),
-                        },
-                      },
-                    }}
-                    format="YYYY-MM-DD"
-                    onChange={(value) =>
-                      onChange(
-                        "dtmDeadLine",
-                        value === null ? undefined : value.format("YYYY-MM-DD"),
-                      )
-                    }
-                  />
-                </LocalizationProvider>
-              </Box>
-              <Divider />
-              <Box sx={{ ...inputBoxSx }}>
-                <Typography sx={typoSx}>작업유형</Typography>
-                <Box
-                  sx={{
-                    pt: 1,
-                    width: "100%",
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                  }}
-                >
-                  {typeList()}
-                </Box>
-              </Box>
-              <Divider />
-            </Stack>
-            <Divider orientation="vertical" flexItem />
             <Box className="rmark" sx={{ ...inputBoxSx }}>
               <TextField
-                value={draftTodo?.rmark}
                 fullWidth
+                value={draftTodo?.rmark}
+                placeholder="내용을 입력하세요."
                 multiline
                 rows={25}
                 sx={{
@@ -393,9 +272,123 @@ export default function EditTodoDialog({
                     ),
                   },
                 }}
-                onChange={(e) => onChange("rmark", e.target.value)}
+                onChange={(e) => handleOnChange("rmark", e.target.value)}
               />
             </Box>
+            <Divider orientation="vertical" flexItem />
+            <Stack
+              direction="column"
+              justifyContent="space-between"
+              sx={{ minWidth: "240px" }}
+            >
+              <Box>
+                <Box sx={{ ...inputBoxSx }}>
+                  <CustomCalendar
+                    todo={draftTodo}
+                    fieldName="dtmStart"
+                    setDraftTodo={setDraftTodo}
+                    // onChange={(value: dayjs.Dayjs | null) =>
+                    //   onChange(
+                    //     "dtmStart",
+                    //     value === null ? undefined : value.format("YYYY-MM-DD"),
+                    //   )
+                    // }
+                  >
+                    <Typography sx={typoSx}>시작 일자</Typography>
+                  </CustomCalendar>
+                </Box>
+                <Box sx={{ ...inputBoxSx }}>
+                  <CustomCalendar
+                    value={draftTodo.dtmEnd}
+                    onChange={(value: dayjs.Dayjs | null) =>
+                      handleOnChange(
+                        "dtmEnd",
+                        value === null ? undefined : value.format("YYYY-MM-DD"),
+                      )
+                    }
+                    handleClickClear={() => handleClear("dtmEnd")}
+                  >
+                    <Typography sx={typoSx}>종료 일자</Typography>
+                  </CustomCalendar>
+                </Box>
+                <Divider />
+                <Box sx={{ ...inputBoxSx }}>
+                  <CustomCalendar
+                    value={draftTodo.dtmDeadLine}
+                    onChange={(value: dayjs.Dayjs | null) =>
+                      handleOnChange(
+                        "dtmDeadLine",
+                        value === null ? undefined : value.format("YYYY-MM-DD"),
+                      )
+                    }
+                    handleClickClear={() => handleClear("dtmDeadLine")}
+                  >
+                    <Typography sx={typoSx}>마감 기한</Typography>
+                  </CustomCalendar>
+                </Box>
+                <Divider />
+                <Box sx={{ ...inputBoxSx }}>
+                  <Typography sx={typoSx}>작업 유형</Typography>
+                  <Box
+                    sx={{
+                      pt: 1,
+                      width: "100%",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {typeList()}
+                  </Box>
+                </Box>
+                <Divider />
+                <Box sx={{ ...inputBoxSx }}>
+                  <Typography sx={typoSx}>중요도</Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Rating
+                      name="simple-controlled"
+                      value={draftTodo?.taskDv}
+                      defaultValue={3}
+                      highlightSelectedOnly
+                      onChange={(event, newValue) =>
+                        handleOnChange("taskDv", newValue ?? 3)
+                      }
+                    />
+                  </Box>
+                </Box>
+                <Divider />
+              </Box>
+              <Box
+                sx={{
+                  ...inputBoxSx,
+                }}
+              >
+                <Button
+                  disableElevation
+                  sx={{
+                    width: "60px",
+                    border: (theme) => `2px solid ${theme.palette.grey[300]}`,
+                    backgroundColor: "grey.100",
+                    color: "#d50000",
+                    fontWeight: "550",
+                    "&:hover": {
+                      borderWidth: "0px",
+                      color: "white",
+                      backgroundColor: "#d50000", // hover 시 darker grey
+                    },
+                  }}
+                  onClick={handleRemoveClick}
+                >
+                  삭제
+                </Button>
+              </Box>
+            </Stack>
           </Stack>
         </Stack>
       </Box>

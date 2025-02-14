@@ -7,10 +7,12 @@ import Box from "@mui/material/Box";
 import {
   Button,
   Chip,
+  createTheme,
   Dialog,
   Divider,
   Stack,
   styled,
+  ThemeProvider,
   Typography,
 } from "@mui/material";
 import Calendar from "@mui/icons-material/Event";
@@ -28,6 +30,7 @@ import { deleteDoc, doc } from "firebase/firestore";
 import fireStore from "@/firebase/firestore";
 import TodoEditDialog from "@/app/todolist/TodoEditDialog";
 import { useTodoStore } from "@/app/todolist/todoStore";
+import RemoveDialog from "../components/RemoveDialog";
 
 /********************************************************************
   [컴포넌트 정보]
@@ -119,6 +122,7 @@ export default function Todo({
     borderRadius: 1,
     backgroundColor: "grey.200",
     p: 0.3,
+    cursor: "pointer",
   };
 
   /**************************************************
@@ -190,44 +194,6 @@ export default function Todo({
     );
   };
 
-  // 작업타입 리스트
-  const RemoveDialog = () => {
-    return (
-      <Box
-        sx={{
-          width: "300px",
-          height: "100px",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <Stack direction="column" width="100%">
-          <Box sx={{ p: 1 }}>
-            <Typography>삭제하시겠습니까?</Typography>
-          </Box>
-          <Stack
-            direction="row"
-            sx={{ width: "100%", p: 1, justifyContent: "end" }}
-          >
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => removeTodo(todo.id)}
-            >
-              예
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => handleDialogClose("Remove")}
-            >
-              아니오
-            </Button>
-          </Stack>
-        </Stack>
-      </Box>
-    );
-  };
-
   return (
     <Box
       id={`${todo.status}_${todo.ord}`}
@@ -254,7 +220,13 @@ export default function Todo({
               </Typography>
               <Box className="iconBox" sx={{ visibility: "hidden" }}>
                 <EditIcon
-                  sx={{ ...iconBoxSx, mr: 0.5 }}
+                  sx={{
+                    ...iconBoxSx,
+                    mr: 0.5,
+                    "&:hover": {
+                      color: "primary.main", // 예시: hover 시 색상 변경
+                    },
+                  }}
                   color="disabled"
                   onClick={() => handleDialogOpen("Edit")}
                 />
@@ -264,12 +236,20 @@ export default function Todo({
                   onClose={() => handleDialogClose("Edit")}
                 />
                 <DeleteIcon
-                  sx={iconBoxSx}
+                  sx={{
+                    ...iconBoxSx,
+                    "&:hover": {
+                      color: "#d50000", // 예시: hover 시 색상 변경
+                    },
+                  }}
                   color="disabled"
                   onClick={() => handleDialogOpen("Remove")}
                 />
                 <Dialog open={removeDialogOpen}>
-                  <RemoveDialog />
+                  <RemoveDialog
+                    handleClickRemove={() => removeTodo(todo.id)}
+                    handleClickCancle={() => handleDialogClose("Remove")}
+                  />
                 </Dialog>
               </Box>
             </Stack>

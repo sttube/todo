@@ -7,7 +7,7 @@ export type TODO = {
   todoType?: {
     [key: string]: boolean;
   };
-  taskDv?: string;
+  taskDv?: number;
   dtmStart?: string;
   dtmEnd?: string;
   dtmDeadLine?: string;

@@ -114,9 +114,11 @@ export const useTodoStore = create<TodoState>((set) => ({
     });
   },
   addTodo: async () => {
+    console.log("here");
     try {
       const { maxOrd, maxId } = await getMaxValue();
-
+      console.log("maxId : ", maxId);
+      console.log("maxOrd : ", maxOrd);
       const newTodo = {
         id: String(maxId + 1),
         numId: maxId + 1,
@@ -163,7 +165,7 @@ export const useTodoStore = create<TodoState>((set) => ({
 async function getMaxValue(): Promise<{ maxOrd: number; maxId: number }> {
   // ord 값 기준 내림차순 정렬 쿼리
   const ordQuery = query(
-    collection(fireStore, "todo"),
+    collection(fireStore, "todo", "userId_01", "todoItem"),
     where("status", "==", "PENDING"),
     orderBy("ord", "desc"),
     limit(1),
@@ -173,7 +175,7 @@ async function getMaxValue(): Promise<{ maxOrd: number; maxId: number }> {
 
   // numId 값 기준 내림차순 정렬 쿼리
   const idQuery = query(
-    collection(fireStore, "todo"),
+    collection(fireStore, "todo", "userId_01", "todoItem"),
     orderBy("numId", "desc"),
     limit(1),
   );

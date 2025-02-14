@@ -384,7 +384,11 @@ export default function Todolist() {
           <Grid container spacing={2} sx={{ height: "inherit" }}>
             {statusList ? (
               statusList.map((status) => (
-                <Grid key={status} size={{ lg: 3 }} sx={{ height: "100%" }}>
+                <Grid
+                  key={status}
+                  size={{ lg: 3, xs: 3 }}
+                  sx={{ height: "100%" }}
+                >
                   <Box
                     sx={{
                       ...statusBoxSx,
