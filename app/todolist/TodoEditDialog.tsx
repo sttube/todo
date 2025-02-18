@@ -6,24 +6,38 @@ import {
   Chip,
   Dialog,
   Divider,
+  FormControl,
+  FormControlLabel,
   IconButton,
+  IconContainerProps,
+  Radio,
+  RadioGroup,
   Rating,
   Stack,
+  styled,
   TextField,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { ClearIcon } from "@mui/x-date-pickers";
+import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
+import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
+import SentimentSatisfiedIcon from "@mui/icons-material/SentimentSatisfied";
+import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAltOutlined";
+import SentimentVerySatisfiedIcon from "@mui/icons-material/SentimentVerySatisfied";
+import RectangleIcon from "@mui/icons-material/Rectangle";
 
-import dayjs from "dayjs";
 import { useTodoStore } from "@/app/todolist/todoStore";
 import { TODO } from "@/app/todolist/Todo_T01";
 import CustomCalendar from "../components/CustomCalendar";
+import DeleteIcon from "@mui/icons-material/Delete";
+import RemoveDialog from "@/app/components/RemoveDialog";
+
 /********************************************************************
-  [컴포넌트 정보]
-  todoItem 편집 다이얼로그
+ [컴포넌트 정보]
+ todoItem 편집 다이얼로그
  ********************************************************************/
-export default function EditTodoDialog({
+export default ({
   open,
   onClose,
   todo,
@@ -31,7 +45,7 @@ export default function EditTodoDialog({
   open: boolean;
   onClose: () => void;
   todo: TODO;
-}) {
+}) => {
   /**************************************************
       변수, 상수 및 상태 정의
     **************************************************/
@@ -52,11 +66,11 @@ export default function EditTodoDialog({
     DEADLINE: boolean;
   }
 
-  const [calOpen, setCalOpen] = useState<CalOpenState>({
-    START: false,
-    END: false,
-    DEADLINE: false,
-  });
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [value, setValue] = React.useState<number | null>(
+    draftTodo.taskDv ?? 3,
+  );
+  const [hover, setHover] = React.useState(-1);
 
   /**************************************************
       useEffect
@@ -70,7 +84,13 @@ export default function EditTodoDialog({
   }, [todo, open]);
 
   useEffect(() => {
-    onUpdate(draftTodo);
+    setTodoList(
+      todoList.map((item) => {
+        return item.id === draftTodo.id ? draftTodo : item;
+      }),
+    );
+    setUpdatedTodos(draftTodo);
+    setIsEditing(true);
   }, [draftTodo]);
 
   /**************************************************
@@ -97,7 +117,7 @@ export default function EditTodoDialog({
     p: "10px",
     display: "flex",
     alignItems: "center",
-    width: "100%",
+    width: "inherit",
     "&.titleBox": {
       p: 2,
       backgroundColor: "grey.200",
@@ -107,39 +127,36 @@ export default function EditTodoDialog({
   const typoSx = {
     mr: 1,
     textAlign: "center",
-    width: "40px",
+    width: "70px",
     minWidth: "40px",
     fontSize: "13px",
     fontWeight: "600",
     color: "grey.600",
+    whiteSpace: "nowrap",
+  };
+
+  // 아이콘 박스 Sx
+  const iconBoxSx = {
+    borderRadius: 1,
+    backgroundColor: "grey.200",
+    p: 0.3,
+    cursor: "pointer",
   };
 
   /**************************************************
     EventHandler
   **************************************************/
-  // updateList에 업데이트 대상 item 추가 후 수정여부(isEditing) 변경
-  const onUpdate = (todo: TODO) => {
-    setTodoList(
-      todoList.map((item) => {
-        return item.id === todo.id ? todo : item;
-      }),
-    );
-    setDraftTodo(todo);
-    setUpdatedTodos(todo);
-    setIsEditing(true);
-  };
-
   // 내용 수정 이벤트
   const handleOnChange = <Key extends keyof TODO>(
     targetField: Key,
     value: TODO[Key],
   ) => {
-    onUpdate({ ...draftTodo, [targetField]: value });
+    setDraftTodo({ ...draftTodo, [targetField]: value });
   };
 
   // 컴포넌트 초기화버튼 클릭이벤트
   const handleClear = (targetField: string) => {
-    onUpdate({ ...draftTodo, [targetField]: null });
+    setDraftTodo({ ...draftTodo, [targetField]: null });
   };
 
   // 작업타입 Chip 클릭이벤트
@@ -150,17 +167,15 @@ export default function EditTodoDialog({
       [id]: newValue, // 클릭한 Chip의 상태를 토글
     }));
 
-    onUpdate({
+    setDraftTodo({
       ...draftTodo,
       todoType: { ...draftTodo.todoType, [id]: newValue },
     });
   };
 
-  // Calendar 오픈 핸들러
-  const handleCalendarOpen = (id: keyof CalOpenState) => {
-    setCalOpen((prev) => {
-      return { ...prev, [id]: !prev[id] };
-    });
+  // 삭제 다이얼로그 오픈 핸들러
+  const handleClickRemove = () => {
+    setRemoveDialogOpen(true);
   };
 
   const handleRemoveClick = () => {
@@ -168,11 +183,17 @@ export default function EditTodoDialog({
     onClose();
   };
 
+  const handleItemClick = (e: React.PointerEvent<HTMLDivElement>) => {
+    // 아이템 클릭 시 상위 컨테이너의 클릭 이벤트가 발생하지 않도록 중지
+    console.log("mousedown");
+    e.stopPropagation();
+  };
+
   /**************************************************
       Element 정의
     **************************************************/
   // 작업타입 리스트
-  const typeList = () => {
+  const TypeList = () => {
     return todoTypeList.map(
       (item: { id: string; ord: number; typeName: string }) => (
         <Chip
@@ -189,37 +210,74 @@ export default function EditTodoDialog({
     );
   };
 
-  const marks = [
-    {
-      value: 0,
-      label: "매우낮음",
+  // 중요도 선택 박스
+  const RatingBox = () => {
+    return (
+      <Box>
+        <Stack direction="row">
+          <StyledRating
+            value={draftTodo.taskDv}
+            defaultValue={2}
+            IconContainerComponent={IconContainer}
+            getLabelText={(value: number) => customIcons[value].label}
+            highlightSelectedOnly
+            max={4}
+            onChange={(event, value) => handleOnChange("taskDv", value ?? 2)}
+            onChangeActive={(event, newHover) => {
+              setHover(newHover);
+            }}
+          />
+          <Box sx={{ ml: 2 }}>
+            {customIcons[hover !== -1 ? hover : (draftTodo.taskDv ?? 2)].label}
+          </Box>
+        </Stack>
+      </Box>
+    );
+  };
+
+  const StyledRating = styled(Rating)(({ theme }) => ({
+    "& .MuiRating-iconEmpty .MuiSvgIcon-root": {
+      color: theme.palette.action.disabled,
     },
-    {
-      value: 25,
+  }));
+
+  const customIcons: {
+    [index: string]: {
+      icon: React.ReactElement<unknown>;
+      label: string;
+    };
+  } = {
+    1: {
+      icon: <RectangleIcon sx={{ color: "skyblue" }} />,
       label: "낮음",
     },
-    {
-      value: 50,
+    2: {
+      icon: <RectangleIcon sx={{ color: "darkseagreen" }} />,
       label: "보통",
     },
-    {
-      value: 75,
+    3: {
+      icon: <RectangleIcon sx={{ color: "orange" }} />,
       label: "높음",
     },
-    {
-      value: 100,
-      label: "매우높음",
+    4: {
+      icon: <RectangleIcon sx={{ color: "orangered" }} />,
+      label: "중요",
     },
-  ];
+  };
 
-  function valuetext(value: number) {
-    const mark = marks.find((m) => m.value === value);
-    return mark ? mark.label : "";
+  function IconContainer(props: IconContainerProps) {
+    const { value, ...other } = props;
+    return <span {...other}>{customIcons[value].icon}</span>;
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg">
-      <Box id={draftTodo.id} sx={{ ...style }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      onPointerDown={(event) => handleItemClick(event)}
+    >
+      <Box id={draftTodo.id} content="div" sx={{ ...style }}>
         <Stack direction="column" width="70vw">
           <Stack className="titleBox" direction="row" sx={{ ...inputBoxSx }}>
             <Box sx={{ width: "100%" }}>
@@ -287,48 +345,32 @@ export default function EditTodoDialog({
                     todo={draftTodo}
                     fieldName="dtmStart"
                     setDraftTodo={setDraftTodo}
-                    // onChange={(value: dayjs.Dayjs | null) =>
-                    //   onChange(
-                    //     "dtmStart",
-                    //     value === null ? undefined : value.format("YYYY-MM-DD"),
-                    //   )
-                    // }
                   >
-                    <Typography sx={typoSx}>시작 일자</Typography>
+                    <Typography sx={typoSx}>시작일자</Typography>
                   </CustomCalendar>
                 </Box>
                 <Box sx={{ ...inputBoxSx }}>
                   <CustomCalendar
-                    value={draftTodo.dtmEnd}
-                    onChange={(value: dayjs.Dayjs | null) =>
-                      handleOnChange(
-                        "dtmEnd",
-                        value === null ? undefined : value.format("YYYY-MM-DD"),
-                      )
-                    }
-                    handleClickClear={() => handleClear("dtmEnd")}
+                    todo={draftTodo}
+                    fieldName="dtmEnd"
+                    setDraftTodo={setDraftTodo}
                   >
-                    <Typography sx={typoSx}>종료 일자</Typography>
+                    <Typography sx={typoSx}>종료일자</Typography>
                   </CustomCalendar>
                 </Box>
                 <Divider />
                 <Box sx={{ ...inputBoxSx }}>
                   <CustomCalendar
-                    value={draftTodo.dtmDeadLine}
-                    onChange={(value: dayjs.Dayjs | null) =>
-                      handleOnChange(
-                        "dtmDeadLine",
-                        value === null ? undefined : value.format("YYYY-MM-DD"),
-                      )
-                    }
-                    handleClickClear={() => handleClear("dtmDeadLine")}
+                    todo={draftTodo}
+                    fieldName="dtmDeadLine"
+                    setDraftTodo={setDraftTodo}
                   >
-                    <Typography sx={typoSx}>마감 기한</Typography>
+                    <Typography sx={typoSx}>마감기한</Typography>
                   </CustomCalendar>
                 </Box>
                 <Divider />
                 <Box sx={{ ...inputBoxSx }}>
-                  <Typography sx={typoSx}>작업 유형</Typography>
+                  <Typography sx={typoSx}>작업유형</Typography>
                   <Box
                     sx={{
                       pt: 1,
@@ -338,55 +380,34 @@ export default function EditTodoDialog({
                       justifyContent: "center",
                     }}
                   >
-                    {typeList()}
+                    {TypeList()}
                   </Box>
                 </Box>
                 <Divider />
                 <Box sx={{ ...inputBoxSx }}>
-                  <Typography sx={typoSx}>중요도</Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      width: "100%",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Rating
-                      name="simple-controlled"
-                      value={draftTodo?.taskDv}
-                      defaultValue={3}
-                      highlightSelectedOnly
-                      onChange={(event, newValue) =>
-                        handleOnChange("taskDv", newValue ?? 3)
-                      }
-                    />
-                  </Box>
+                  <Typography sx={typoSx}>우선순위</Typography>
+                  <RatingBox />
                 </Box>
                 <Divider />
               </Box>
-              <Box
-                sx={{
-                  ...inputBoxSx,
-                }}
-              >
-                <Button
-                  disableElevation
+              <Box sx={{ ...inputBoxSx }}>
+                <DeleteIcon
                   sx={{
-                    width: "60px",
-                    border: (theme) => `2px solid ${theme.palette.grey[300]}`,
-                    backgroundColor: "grey.100",
-                    color: "#d50000",
-                    fontWeight: "550",
+                    ...iconBoxSx,
+                    fontSize: "30px",
                     "&:hover": {
-                      borderWidth: "0px",
-                      color: "white",
-                      backgroundColor: "#d50000", // hover 시 darker grey
+                      color: "#d50000", // hover 시 색상 변경
                     },
                   }}
-                  onClick={handleRemoveClick}
-                >
-                  삭제
-                </Button>
+                  color="disabled"
+                  onClick={handleClickRemove}
+                />
+                <Typography sx={{ ...typoSx, width: "40px" }}>삭제</Typography>
+                <RemoveDialog
+                  open={removeDialogOpen}
+                  onClose={() => setRemoveDialogOpen(false)}
+                  todoId={draftTodo.id}
+                />
               </Box>
             </Stack>
           </Stack>
@@ -394,4 +415,4 @@ export default function EditTodoDialog({
       </Box>
     </Dialog>
   );
-}
+};

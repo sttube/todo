@@ -2,16 +2,7 @@
 import React, { useEffect, useState } from "react";
 
 // firestore
-import {
-  doc,
-  setDoc,
-  getDoc,
-  onSnapshot,
-  collection,
-  query,
-  orderBy,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 import fireStore from "../../firebase/firestore";
 
 // MUI
@@ -30,6 +21,7 @@ import {
   DragEndEvent,
   DragMoveEvent,
   DragOverlay,
+  DragStartEvent,
   PointerSensor,
   rectIntersection,
   useSensor,
@@ -60,8 +52,6 @@ export default function Todolist() {
   type maxIdType = { [key: string]: number };
   const [maxStageId, setMaxStageId] = useState<maxIdType>({});
   const [statusList, setStatusList] = useState<string[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null); //드래그중인 아이템의 id
-  const [overlayItem, setOverlayItem] = useState<TODO | undefined>(); //드래그중인 아이템 데이터
   const [pointerInitialY, setPointerInitialY] = useState<number>(0); // 드래그 시작시 마우스 초기위치
   const [deltaY, setDeltaY] = useState<number>(0); // 드래그중 마우스 이동 변위
   const { setFocusedId } = useFocus();
@@ -70,8 +60,12 @@ export default function Todolist() {
     isEditing,
     todoList,
     updatedTodos,
+    activeId,
+    overlayItem,
     setIsEditing,
     setUpdatedTodos,
+    setActiveId,
+    setOverlayItem,
     initTodo,
     addTodo,
   } = useTodoStore();
@@ -201,10 +195,10 @@ export default function Todolist() {
     EventHandler
   **************************************************/
   // 드래그 시작 시 activeId 설정
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
-    setOverlayItem(event.active.data.current.item);
-    setFocusedId(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+    setOverlayItem(event.active.data.current?.item);
+    setFocusedId(String(event.active.id));
 
     const pointerEvent = event.activatorEvent as PointerEvent;
     setPointerInitialY(pointerEvent.clientY);
@@ -219,7 +213,7 @@ export default function Todolist() {
     const { active, over } = event;
     // activeId 제거
     setActiveId(null);
-    setOverlayItem(undefined);
+    setOverlayItem(null);
     // 드롭 대상이 없으면 무시
     if (!active || !over) return;
     // 데이터 타입을 명시적으로 지정
@@ -241,11 +235,7 @@ export default function Todolist() {
     if (!activeData || !overData) return;
 
     // 드래그 아이템과 드롭 영역의 데이터 추출
-    const {
-      compType: activeType,
-      item: activeItem,
-      status: activeStatus,
-    } = activeData;
+    const { item: activeItem } = activeData;
     const { compType: overType, item: overItem, status: overStatus } = overData;
 
     /*****************************************************************************
@@ -360,7 +350,7 @@ export default function Todolist() {
   // 드래그 취소 시 activeId 초기화
   const handleDragCancel = () => {
     setActiveId(null);
-    setOverlayItem(undefined);
+    setOverlayItem(null);
   };
 
   const onClickAdd = async () => {

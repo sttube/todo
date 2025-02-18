@@ -23,12 +23,16 @@ interface TodoState {
     isEditing         : 현재 수정중인지 여부
     todoList          : to do 아이템리스트
     todoTypeList      : to do 작업타입 아이템리스트
-    updatedTodos    : 업데이트된 아이템들의 id 배열
+    updatedTodos      : 업데이트된 아이템들의 id 배열
+    activeId          : 드래그 활성화중인 아이템의 ID
+    overlayItem       : 드래그 활성화중인 경우 overlay를 그리기위한 Data
 
     ***** State Setter *****
     setIsEditing      : 현재 수정중인지 여부를 관리
     setTodoList       : todoList setter
-    setUpdatedTodos : 업데이트된 아이템들의 id 배열 관리
+    setUpdatedTodos   : 업데이트된 아이템들의 id 배열 관리
+    setActiveId       : activeId setter
+    setOverlayItem    : overlayItem setter
 
     ***** Operations  *****
     initTodo           : Doc 구독 및 불러온 데이터로 todoList 초기값 설정
@@ -41,10 +45,14 @@ interface TodoState {
   todoList: TODO[];
   todoTypeList: TYPE_ITEM[];
   updatedTodos: TODO[];
+  activeId: string | null;
+  overlayItem: TODO | null;
 
   setIsEditing: (value: boolean) => void;
   setTodoList: (todoList: TODO[]) => void;
   setUpdatedTodos: (id: TODO | undefined) => void;
+  setActiveId: (id: string | null) => void;
+  setOverlayItem: (todo: TODO | null) => void;
 
   initTodo: () => Unsubscribe;
   addTodo: () => void;
@@ -57,6 +65,9 @@ export const useTodoStore = create<TodoState>((set) => ({
   todoList: [],
   todoTypeList: [],
   updatedTodos: [],
+  activeId: null,
+  overlayItem: null,
+
   setIsEditing: (value: boolean) => set({ isEditing: value }),
   setTodoList: (todoList: TODO[]) => set({ todoList: todoList }),
   setUpdatedTodos: (todo?: TODO) =>
@@ -79,6 +90,9 @@ export const useTodoStore = create<TodoState>((set) => ({
         return { updatedTodos: [...prevState.updatedTodos, todo] };
       }
     }),
+  setActiveId: (id: string | null) => set({ activeId: id }),
+  setOverlayItem: (todo: TODO | null) => set({ overlayItem: todo }),
+
   initTodo: () => {
     console.log("initTodo");
     // todoTypeDoc 조회

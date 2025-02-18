@@ -232,8 +232,8 @@ export default function Todo({
                 />
                 <TodoEditDialog
                   open={editDialogOpen}
-                  todo={todo}
                   onClose={() => handleDialogClose("Edit")}
+                  todo={todo}
                 />
                 <DeleteIcon
                   sx={{
@@ -245,12 +245,11 @@ export default function Todo({
                   color="disabled"
                   onClick={() => handleDialogOpen("Remove")}
                 />
-                <Dialog open={removeDialogOpen}>
-                  <RemoveDialog
-                    handleClickRemove={() => removeTodo(todo.id)}
-                    handleClickCancle={() => handleDialogClose("Remove")}
-                  />
-                </Dialog>
+                <RemoveDialog
+                  open={removeDialogOpen}
+                  onClose={() => handleDialogClose("Remove")}
+                  todoId={todo.id}
+                />
               </Box>
             </Stack>
             <Divider sx={{ mt: 1, mb: 1 }} />
