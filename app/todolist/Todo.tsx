@@ -7,27 +7,17 @@ import Box from "@mui/material/Box";
 import {
   Button,
   Chip,
-  createTheme,
-  Dialog,
   Divider,
   Stack,
   styled,
-  ThemeProvider,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import Calendar from "@mui/icons-material/Event";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import { ClearIcon } from "@mui/x-date-pickers";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { useSortable } from "@dnd-kit/sortable";
 import { useFocus } from "@/app/components/FocusContext";
-import { deleteDoc, doc } from "firebase/firestore";
-import fireStore from "@/firebase/firestore";
 import TodoEditDialog from "@/app/todolist/TodoEditDialog";
 import { useTodoStore } from "@/app/todolist/todoStore";
 import RemoveDialog from "../components/RemoveDialog";
@@ -41,9 +31,12 @@ const CustomTypography = styled(Typography)(() => ({
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
   // 원하는 줄 수로 제한
-  WebkitLineClamp: 3,
+  WebkitLineClamp: 1,
   p: 3,
   whiteSpace: "pre-line",
+  "&.rmark": {
+    WebkitLineClamp: 3,
+  },
 }));
 
 export default function Todo({
@@ -66,10 +59,9 @@ export default function Todo({
     todo.todoType ?? {},
   );
   // const [isEditing, setIsEditing] = useState(false); // 수정여부
-  const [calOpen, setCalOpen] = useState({ START: false, END: false });
-  const { todoList, todoTypeList, removeTodo } = useTodoStore();
+  const { todoTypeList } = useTodoStore();
 
-  const { attributes, listeners, setActivatorNodeRef, setNodeRef, isDragging } =
+  const { listeners, setActivatorNodeRef, setNodeRef, isDragging } =
     useSortable({
       id: todo.id,
       data: { status: todo.status, item: todo, compType: "Item" },
@@ -160,16 +152,6 @@ export default function Todo({
     }
   };
 
-  // 작업유형 제거버튼 클릭 이벤트
-  const handleRemoveClick = async () => {
-    const todoRef = doc(fireStore, "todo", "userId_01", "todoItem", todo.id);
-    try {
-      await deleteDoc(todoRef);
-    } catch (error) {
-      console.log("TODO 아이템을 제거하는 과정에서 오류가 발생하였습니다.");
-    }
-  };
-
   /**************************************************
     사용자 정의 함수
   **************************************************/
@@ -208,17 +190,32 @@ export default function Todo({
             <Stack
               direction="row"
               sx={{
+                pl: 1,
+                pr: 1,
                 display: "flex",
-                alignItems: "center",
                 justifyContent: "space-between",
               }}
             >
-              <Typography
-                sx={{ width: "45px", fontSize: "14px", fontWeight: "600" }}
+              <Box>
+                <Tooltip title="우선순위" placement="top">
+                  <Chip
+                    label="매우높음"
+                    size="small"
+                    sx={{ mr: 0.5, fontWeight: "bold" }}
+                  />
+                </Tooltip>
+                <Tooltip title="마감기한" placement="top">
+                  <Chip
+                    label="D-12"
+                    size="small"
+                    sx={{ mr: 0.5, fontWeight: "bold" }}
+                  />
+                </Tooltip>
+              </Box>
+              <Box
+                className="iconBox"
+                sx={{ visibility: "hidden", whiteSpace: "nowrap" }}
               >
-                {todo?.title}
-              </Typography>
-              <Box className="iconBox" sx={{ visibility: "hidden" }}>
                 <EditIcon
                   sx={{
                     ...iconBoxSx,
@@ -253,16 +250,52 @@ export default function Todo({
               </Box>
             </Stack>
             <Divider sx={{ mt: 1, mb: 1 }} />
-            <Stack direction="row">
-              <Typography>
-                {todo?.dtmStart} ~ {todo?.dtmEnd}
-              </Typography>
-            </Stack>
+            {(todo.dtmStart || todo.dtmEnd) && (
+              <>
+                <Stack
+                  direction="row"
+                  sx={{
+                    pl: 1,
+                    pr: 1,
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  {todo.dtmStart && (
+                    <Chip
+                      label={`시작 | ${todo.dtmStart}`}
+                      size="small"
+                      sx={{ fontWeight: "bold" }}
+                    />
+                  )}
+                  {todo.dtmEnd && (
+                    <Chip
+                      label={`종료 | ${todo.dtmEnd}`}
+                      size="small"
+                      sx={{ fontWeight: "bold" }}
+                    />
+                  )}
+                </Stack>
+                <Divider sx={{ mt: 1, mb: 1 }} />
+              </>
+            )}
+            <CustomTypography
+              sx={{
+                pl: 1,
+                pr: 1,
+                fontSize: "14px",
+                fontWeight: "600",
+                color: todo.title ? "default" : "grey.400",
+              }}
+            >
+              {todo.title ?? "제목이 없습니다."}
+            </CustomTypography>
             <Divider sx={{ mt: 1, mb: 1 }} />
             <CustomTypography
-              sx={{ color: todo?.rmark ? "default" : "grey.400" }}
+              className="rmark"
+              sx={{ pl: 1, pr: 1, color: todo.rmark ? "default" : "grey.400" }}
             >
-              {todo?.rmark ? todo?.rmark : "내용이 없습니다."}
+              {todo.rmark ?? "내용이 없습니다."}
             </CustomTypography>
           </Stack>
         </Box>

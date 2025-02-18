@@ -2,16 +2,11 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  Button,
   Chip,
   Dialog,
   Divider,
-  FormControl,
-  FormControlLabel,
   IconButton,
   IconContainerProps,
-  Radio,
-  RadioGroup,
   Rating,
   Stack,
   styled,
@@ -20,11 +15,6 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { ClearIcon } from "@mui/x-date-pickers";
-import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
-import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
-import SentimentSatisfiedIcon from "@mui/icons-material/SentimentSatisfied";
-import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAltOutlined";
-import SentimentVerySatisfiedIcon from "@mui/icons-material/SentimentVerySatisfied";
 import RectangleIcon from "@mui/icons-material/Rectangle";
 
 import { useTodoStore } from "@/app/todolist/todoStore";
@@ -60,16 +50,7 @@ export default ({
     removeTodo,
   } = useTodoStore();
 
-  interface CalOpenState {
-    START: boolean;
-    END: boolean;
-    DEADLINE: boolean;
-  }
-
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
-  const [value, setValue] = React.useState<number | null>(
-    draftTodo.taskDv ?? 3,
-  );
   const [hover, setHover] = React.useState(-1);
 
   /**************************************************
@@ -96,9 +77,40 @@ export default ({
   /**************************************************
       스타일 정의
     **************************************************/
+
+  const customIcons: {
+    [index: string]: {
+      icon: React.ReactElement<unknown>;
+      label: string;
+      bgColor: string;
+    };
+  } = {
+    1: {
+      icon: <RectangleIcon sx={{ color: "#A2D2FF" }} />,
+      label: "낮음",
+      bgColor: "#A2D2FF",
+    },
+    2: {
+      icon: <RectangleIcon sx={{ color: "#B8E994" }} />,
+      label: "보통",
+      bgColor: "#B8E994",
+    },
+    3: {
+      icon: <RectangleIcon sx={{ color: "#FFD8A9" }} />,
+      label: "높음",
+      bgColor: "#FFD8A9",
+    },
+    4: {
+      icon: <RectangleIcon sx={{ color: "#FFAAA5" }} />,
+      label: "중요",
+      bgColor: "#FFAAA5",
+    },
+  };
+
   const style = {
     display: "flex",
     alignItems: "center",
+    justifyContent: "start",
     backgroundColor: "white",
     width: "100%",
   };
@@ -116,19 +128,19 @@ export default ({
   const inputBoxSx = {
     p: "10px",
     display: "flex",
+    justifyContent: "start",
     alignItems: "center",
-    width: "inherit",
+    width: "100%",
     "&.titleBox": {
       p: 2,
-      backgroundColor: "grey.200",
+      backgroundColor: customIcons[draftTodo.taskDv ?? 2].bgColor,
     },
   };
 
   const typoSx = {
-    mr: 1,
+    pr: 1,
     textAlign: "center",
-    width: "70px",
-    minWidth: "40px",
+    minWidth: "65px",
     fontSize: "13px",
     fontWeight: "600",
     color: "grey.600",
@@ -151,7 +163,13 @@ export default ({
     targetField: Key,
     value: TODO[Key],
   ) => {
-    setDraftTodo({ ...draftTodo, [targetField]: value });
+    if (value === "") {
+      // value가 빈 값이면 targetField를 제거한 나머지 속성들로 새 객체 생성
+      const { [targetField]: _, ...rest } = draftTodo;
+      setDraftTodo(rest as TODO);
+    } else {
+      setDraftTodo({ ...draftTodo, [targetField]: value });
+    }
   };
 
   // 컴포넌트 초기화버튼 클릭이벤트
@@ -214,7 +232,7 @@ export default ({
   const RatingBox = () => {
     return (
       <Box>
-        <Stack direction="row">
+        <Stack direction="row" sx={{ display: "flex", alignItems: "end" }}>
           <StyledRating
             value={draftTodo.taskDv}
             defaultValue={2}
@@ -222,14 +240,23 @@ export default ({
             getLabelText={(value: number) => customIcons[value].label}
             highlightSelectedOnly
             max={4}
-            onChange={(event, value) => handleOnChange("taskDv", value ?? 2)}
-            onChangeActive={(event, newHover) => {
+            onChange={(_, value) => handleOnChange("taskDv", value ?? 2)}
+            onChangeActive={(_, newHover) => {
               setHover(newHover);
             }}
           />
-          <Box sx={{ ml: 2 }}>
+          <Typography
+            sx={{
+              ml: 1,
+              pb: 0.2,
+              fontSize: "13px",
+              fontWeight: "600",
+              color: "grey.600",
+              whiteSpace: "nowrap",
+            }}
+          >
             {customIcons[hover !== -1 ? hover : (draftTodo.taskDv ?? 2)].label}
-          </Box>
+          </Typography>
         </Stack>
       </Box>
     );
@@ -241,35 +268,12 @@ export default ({
     },
   }));
 
-  const customIcons: {
-    [index: string]: {
-      icon: React.ReactElement<unknown>;
-      label: string;
-    };
-  } = {
-    1: {
-      icon: <RectangleIcon sx={{ color: "skyblue" }} />,
-      label: "낮음",
-    },
-    2: {
-      icon: <RectangleIcon sx={{ color: "darkseagreen" }} />,
-      label: "보통",
-    },
-    3: {
-      icon: <RectangleIcon sx={{ color: "orange" }} />,
-      label: "높음",
-    },
-    4: {
-      icon: <RectangleIcon sx={{ color: "orangered" }} />,
-      label: "중요",
-    },
-  };
-
   function IconContainer(props: IconContainerProps) {
     const { value, ...other } = props;
     return <span {...other}>{customIcons[value].icon}</span>;
   }
 
+  // 본문
   return (
     <Dialog
       open={open}
@@ -279,16 +283,27 @@ export default ({
     >
       <Box id={draftTodo.id} content="div" sx={{ ...style }}>
         <Stack direction="column" width="70vw">
-          <Stack className="titleBox" direction="row" sx={{ ...inputBoxSx }}>
+          <Stack
+            className="titleBox"
+            direction="row"
+            sx={{
+              ...inputBoxSx,
+            }}
+          >
             <Box sx={{ width: "100%" }}>
               <TextField
                 fullWidth
                 id="title"
-                size="medium"
+                size="small"
                 variant="standard"
-                value={draftTodo?.title}
+                value={draftTodo.title ?? ""}
                 placeholder="제목을 입력하세요."
-                sx={{ fontSize: "20px" }}
+                sx={{
+                  "& .MuiInputBase-input": {
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                  },
+                }}
                 onChange={(e) => handleOnChange("title", e.target.value)}
               />
             </Box>

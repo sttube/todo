@@ -1,35 +1,10 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 //MUI
 import Box from "@mui/material/Box";
-import {
-  Button,
-  Chip,
-  createTheme,
-  Dialog,
-  Divider,
-  Stack,
-  styled,
-  ThemeProvider,
-  Typography,
-} from "@mui/material";
-import Calendar from "@mui/icons-material/Event";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import { ClearIcon } from "@mui/x-date-pickers";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-
-import { useSortable } from "@dnd-kit/sortable";
-import { useFocus } from "@/app/components/FocusContext";
-import { deleteDoc, doc } from "firebase/firestore";
-import fireStore from "@/firebase/firestore";
-import TodoEditDialog from "@/app/todolist/TodoEditDialog";
+import { Button, Dialog, Stack, Typography } from "@mui/material";
 import { useTodoStore } from "@/app/todolist/todoStore";
-import { TODO } from "@/app/todolist/Todo_T01";
 
 /********************************************************************
  [컴포넌트 정보]
