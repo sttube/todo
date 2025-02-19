@@ -48,7 +48,6 @@ export default ({
     setIsEditing,
     setTodoList,
     setUpdatedTodos,
-    removeTodo,
   } = useTodoStore();
 
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
@@ -168,14 +167,8 @@ export default ({
     setRemoveDialogOpen(true);
   };
 
-  const handleRemoveClick = () => {
-    removeTodo(draftTodo.id);
-    onClose();
-  };
-
   const handleItemClick = (e: React.PointerEvent<HTMLDivElement>) => {
     // 아이템 클릭 시 상위 컨테이너의 클릭 이벤트가 발생하지 않도록 중지
-    console.log("mousedown");
     e.stopPropagation();
   };
 

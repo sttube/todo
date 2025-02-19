@@ -56,12 +56,6 @@ export default function Todo({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [dDay, setDDay] = useState<React.ReactElement>(<></>);
-
-  // 작업유형 클릭여부
-  type TodoType = { [key: string]: boolean };
-  const [clickedChips, setClickedChips] = useState<TodoType>(
-    todo.todoType ?? {},
-  );
   // dnd-kit(드래그 기능)
   const { listeners, setActivatorNodeRef, setNodeRef, isDragging } =
     useSortable({
@@ -129,15 +123,6 @@ export default function Todo({
       visibility: "visible",
     },
   };
-  // 작업타입 Chip Sx
-  const chipSx = (id: string) => {
-    return {
-      color: clickedChips[id] ? "primary.main" : "grey.400",
-      borderWidth: clickedChips[id] ? "0.15em" : 1,
-      borderColor: clickedChips[id] ? "primary.main" : "grey.400",
-      margin: "0 8px 8px 0",
-    };
-  };
 
   // 내부 박스 Sx
   const inputBoxSx = {
@@ -201,7 +186,7 @@ export default function Todo({
   const TypeChip = () => {
     if (todo.todoType) {
       const matchedTodoType = todoTypeList.find(
-        (item) => todo.todoType !== undefined && todo.todoType[item.id],
+        (item) => todo.todoType && todo.todoType[item.id],
       );
       if (matchedTodoType)
         return (

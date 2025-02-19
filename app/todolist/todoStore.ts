@@ -131,7 +131,6 @@ export const useTodoStore = create<TodoState>((set) => ({
   setOverlayItem: (todo: TODO | null) => set({ overlayItem: todo }),
 
   initTodo: () => {
-    console.log("initTodo");
     // todoTypeDoc 조회
     const loadTodoType = async () => {
       const todoTypeRef = doc(fireStore, "todo", "todoType");

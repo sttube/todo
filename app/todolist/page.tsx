@@ -133,7 +133,6 @@ export default function Todolist() {
     useEffect
   **************************************************/
   useEffect(() => {
-    console.log("start");
     // Status List 초기화
     if (process.env["NEXT_PUBLIC_STATUS_LIST"] !== undefined) {
       setStatusList(process.env["NEXT_PUBLIC_STATUS_LIST"]?.split(","));
@@ -354,9 +353,7 @@ export default function Todolist() {
   };
 
   const onClickAdd = async () => {
-    console.log("before add : ", todoList.length);
     addTodo();
-    console.log("after add : ", todoList.length);
   };
 
   /**************************************************
