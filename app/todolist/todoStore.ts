@@ -17,6 +17,12 @@ import {
 import fireStore from "@/firebase/firestore";
 import { TYPE_ITEM } from "@/app/settings/Settings_T01";
 
+// 우선순위 컬러 scheme
+interface PriorityMapping {
+  label: string;
+  bgColor: string;
+}
+
 interface TodoState {
   /*
     ***** State *****
@@ -24,8 +30,10 @@ interface TodoState {
     todoList          : to do 아이템리스트
     todoTypeList      : to do 작업타입 아이템리스트
     updatedTodos      : 업데이트된 아이템들의 id 배열
+    newTodoId         : 추가된 신규 아이템의 ID. FOCUS 변경용.
     activeId          : 드래그 활성화중인 아이템의 ID
     overlayItem       : 드래그 활성화중인 경우 overlay를 그리기위한 Data
+    priorityScheme    : 우선순위 정보
 
     ***** State Setter *****
     setIsEditing      : 현재 수정중인지 여부를 관리
@@ -45,8 +53,11 @@ interface TodoState {
   todoList: TODO[];
   todoTypeList: TYPE_ITEM[];
   updatedTodos: TODO[];
+  newTodoId: string | null;
   activeId: string | null;
   overlayItem: TODO | null;
+  priorityScheme: Record<string, PriorityMapping>;
+  dDayScheme: Record<string, string>;
 
   setIsEditing: (value: boolean) => void;
   setTodoList: (todoList: TODO[]) => void;
@@ -60,13 +71,39 @@ interface TodoState {
   removeTodo: (id: string) => void;
 }
 
+// @ts-ignore
 export const useTodoStore = create<TodoState>((set) => ({
   isEditing: false,
   todoList: [],
   todoTypeList: [],
   updatedTodos: [],
+  newTodoId: "",
   activeId: null,
   overlayItem: null,
+  priorityScheme: {
+    "1": {
+      label: "낮음",
+      bgColor: "#A2D2FF",
+    },
+    "2": {
+      label: "보통",
+      bgColor: "#B8E994",
+    },
+    "3": {
+      label: "높음",
+      bgColor: "#FFD8A9",
+    },
+    "4": {
+      label: "중요",
+      bgColor: "#FFAAA5",
+    },
+  },
+  dDayScheme: {
+    m5: "#B8E994",
+    m0: "#FFD8A9",
+    d: "#FFAAA5",
+    p: "disabled",
+  },
 
   setIsEditing: (value: boolean) => set({ isEditing: value }),
   setTodoList: (todoList: TODO[]) => set({ todoList: todoList }),
@@ -128,17 +165,16 @@ export const useTodoStore = create<TodoState>((set) => ({
     });
   },
   addTodo: async () => {
-    console.log("here");
     try {
       const { maxOrd, maxId } = await getMaxValue();
-      console.log("maxId : ", maxId);
-      console.log("maxOrd : ", maxOrd);
+
       const newTodo = {
         id: String(maxId + 1),
         numId: maxId + 1,
         ord: maxOrd + 1,
         status: "PENDING",
         title: String(maxId + 1),
+        priority: 2,
       } as TODO;
 
       const todoRef = doc(
@@ -156,6 +192,8 @@ export const useTodoStore = create<TodoState>((set) => ({
         },
         { merge: true },
       );
+
+      set(() => ({ newTodoId: String(maxId + 1) }));
     } catch (error) {
       console.error("Todo 아이템 추가 도중 오류가 발생했습니다.\n", error);
     }

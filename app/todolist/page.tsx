@@ -354,7 +354,9 @@ export default function Todolist() {
   };
 
   const onClickAdd = async () => {
+    console.log("before add : ", todoList.length);
     addTodo();
+    console.log("after add : ", todoList.length);
   };
 
   /**************************************************

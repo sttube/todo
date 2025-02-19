@@ -44,6 +44,7 @@ export default ({
   const {
     todoList,
     todoTypeList,
+    priorityScheme,
     setIsEditing,
     setTodoList,
     setUpdatedTodos,
@@ -77,36 +78,6 @@ export default ({
   /**************************************************
       스타일 정의
     **************************************************/
-
-  const customIcons: {
-    [index: string]: {
-      icon: React.ReactElement<unknown>;
-      label: string;
-      bgColor: string;
-    };
-  } = {
-    1: {
-      icon: <RectangleIcon sx={{ color: "#A2D2FF" }} />,
-      label: "낮음",
-      bgColor: "#A2D2FF",
-    },
-    2: {
-      icon: <RectangleIcon sx={{ color: "#B8E994" }} />,
-      label: "보통",
-      bgColor: "#B8E994",
-    },
-    3: {
-      icon: <RectangleIcon sx={{ color: "#FFD8A9" }} />,
-      label: "높음",
-      bgColor: "#FFD8A9",
-    },
-    4: {
-      icon: <RectangleIcon sx={{ color: "#FFAAA5" }} />,
-      label: "중요",
-      bgColor: "#FFAAA5",
-    },
-  };
-
   const style = {
     display: "flex",
     alignItems: "center",
@@ -133,7 +104,7 @@ export default ({
     width: "100%",
     "&.titleBox": {
       p: 2,
-      backgroundColor: customIcons[draftTodo.taskDv ?? 2].bgColor,
+      backgroundColor: priorityScheme[draftTodo.priority ?? 2].bgColor,
     },
   };
 
@@ -173,8 +144,9 @@ export default ({
   };
 
   // 컴포넌트 초기화버튼 클릭이벤트
-  const handleClear = (targetField: string) => {
-    setDraftTodo({ ...draftTodo, [targetField]: null });
+  const handleClear = <Key extends keyof TODO>(targetField: Key) => {
+    const { [targetField]: _, ...rest } = draftTodo;
+    setDraftTodo(rest as TODO);
   };
 
   // 작업타입 Chip 클릭이벤트
@@ -234,13 +206,13 @@ export default ({
       <Box>
         <Stack direction="row" sx={{ display: "flex", alignItems: "end" }}>
           <StyledRating
-            value={draftTodo.taskDv}
+            value={draftTodo.priority}
             defaultValue={2}
             IconContainerComponent={IconContainer}
-            getLabelText={(value: number) => customIcons[value].label}
+            getLabelText={(value: number) => priorityScheme[value].label}
             highlightSelectedOnly
             max={4}
-            onChange={(_, value) => handleOnChange("taskDv", value ?? 2)}
+            onChange={(_, value) => handleOnChange("priority", value ?? 2)}
             onChangeActive={(_, newHover) => {
               setHover(newHover);
             }}
@@ -255,7 +227,10 @@ export default ({
               whiteSpace: "nowrap",
             }}
           >
-            {customIcons[hover !== -1 ? hover : (draftTodo.taskDv ?? 2)].label}
+            {
+              priorityScheme[hover !== -1 ? hover : (draftTodo.priority ?? 2)]
+                .label
+            }
           </Typography>
         </Stack>
       </Box>
@@ -270,7 +245,11 @@ export default ({
 
   function IconContainer(props: IconContainerProps) {
     const { value, ...other } = props;
-    return <span {...other}>{customIcons[value].icon}</span>;
+    return (
+      <span {...other}>
+        <RectangleIcon sx={{ color: priorityScheme[value].bgColor }} />
+      </span>
+    );
   }
 
   // 본문
@@ -290,6 +269,7 @@ export default ({
               ...inputBoxSx,
             }}
           >
+            {/*상단 제목 섹션*/}
             <Box sx={{ width: "100%" }}>
               <TextField
                 fullWidth
@@ -320,10 +300,11 @@ export default ({
           </Stack>
           <Divider />
           <Stack direction="row" sx={{ width: "100%" }}>
+            {/*하단 좌측 내용 섹션*/}
             <Box className="rmark" sx={{ ...inputBoxSx }}>
               <TextField
                 fullWidth
-                value={draftTodo?.rmark}
+                value={draftTodo.rmark ?? ""}
                 placeholder="내용을 입력하세요."
                 multiline
                 rows={25}
@@ -349,10 +330,11 @@ export default ({
               />
             </Box>
             <Divider orientation="vertical" flexItem />
+            {/*하단 우측 상세정보 섹션*/}
             <Stack
               direction="column"
               justifyContent="space-between"
-              sx={{ minWidth: "240px" }}
+              sx={{ minWidth: "300px" }}
             >
               <Box>
                 <Box sx={{ ...inputBoxSx }}>
