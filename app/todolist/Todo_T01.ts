@@ -13,3 +13,7 @@ export type TODO = {
   dtmDeadLine?: string;
   rmark?: string;
 };
+
+export type REPORT = {
+  memo?: string;
+};

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 // MUI
 import Box from "@mui/material/Box";
@@ -9,6 +9,9 @@ import Box from "@mui/material/Box";
 import Todo from "@/app/todolist/Todo";
 import { TODO } from "@/app/todolist/Todo_T01";
 import { useDroppable } from "@dnd-kit/core";
+import { TextField } from "@mui/material";
+import { useTodoStore } from "@/app/todolist/todoStore";
+import ReportEditor from "@/app/components/ReportEditor";
 
 /********************************************************************
   [컴포넌트 정보]
@@ -20,7 +23,6 @@ import { useDroppable } from "@dnd-kit/core";
   스타일 정의
 **************************************************/
 const listBoxSx = {
-  height: "100%",
   flexGrow: 1,
   backgroundColor: "#f5f5f5",
   border: "2px solid primary.main",
@@ -36,19 +38,35 @@ export default function TodoListBox({
   /**************************************************
     변수, 상수 및 상태 정의
   **************************************************/
+  const { report } = useTodoStore();
   const { setNodeRef } = useDroppable({
     id: status,
     data: { status: status, compType: "ListBox" },
   });
+  const [draftReport, setDraftReport] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (status === "주간보고서") {
+      setDraftReport(report?.memo);
+    }
+  }, [report]);
+
+  /**************************************************
+    EventHandler
+  **************************************************/
 
   /**************************************************
     DOM 연결과 스타일 적용
   **************************************************/
   return (
     <Box id={status} ref={setNodeRef} sx={listBoxSx}>
-      {filteredList.map((todo: TODO) => (
-        <Todo key={todo.id} todo={todo} isOverlay={false} />
-      ))}
+      {status === "주간보고서" ? (
+        <ReportEditor />
+      ) : (
+        filteredList.map((todo: TODO) => (
+          <Todo key={todo.id} todo={todo} isOverlay={false} />
+        ))
+      )}
     </Box>
   );
 }

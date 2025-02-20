@@ -1,20 +1,20 @@
-'use client';
-import React, { RefObject, useEffect, useRef, useState } from 'react';
+"use client";
+import React, { RefObject, useEffect, useRef, useState } from "react";
 
 // MUI
-import Box from '@mui/material/Box';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import Box from "@mui/material/Box";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 
-import { IconButton, TextField } from '@mui/material';
-import { useSortable } from '@dnd-kit/sortable';
-import { Arguments, CSS } from '@dnd-kit/utilities';
-import { TYPE_ITEM } from './Settings_T01';
+import { IconButton, TextField } from "@mui/material";
+import { useSortable } from "@dnd-kit/sortable";
+import { Arguments, CSS } from "@dnd-kit/utilities";
+import { TYPE_ITEM } from "./Settings_T01";
 
 export default function TodoType({
   typeItem,
   handleOnChange,
   handleClickRemoveButton,
-  setTodoTypeList
+  setTodoTypeList,
 }: {
   typeItem: TYPE_ITEM;
   handleOnChange: (key: string, value: string) => void;
@@ -25,7 +25,7 @@ export default function TodoType({
     변수, 상수 및 상태 정의
   **************************************************/
   const options = {
-    id: typeItem.id
+    id: typeItem.id,
   };
 
   const {
@@ -35,18 +35,18 @@ export default function TodoType({
     setNodeRef,
     transform,
     transition,
-    isDragging
-  } = useSortable(options as Arguments<any>);
+    isDragging,
+  } = useSortable(options);
 
   const style = {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     transform: CSS.Translate.toString(transform),
     transition,
-    background: isDragging ? '#e0f7fa' : '#fff',
+    background: isDragging ? "#e0f7fa" : "#fff",
     padding: 2,
     // marginBottom: 4,
-    cursor: 'grab'
+    cursor: "grab",
   };
 
   return (
@@ -56,7 +56,7 @@ export default function TodoType({
         id="type"
         size="small"
         variant="outlined"
-        sx={{ width: '200px' }}
+        sx={{ width: "200px" }}
         value={typeItem.typeName}
         onChange={(e) => handleOnChange(typeItem.id, e.target.value)}
       />

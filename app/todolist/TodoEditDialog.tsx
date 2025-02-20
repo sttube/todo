@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import isEqual from "lodash/isEqual";
 import {
   Box,
   Chip,
@@ -40,8 +41,11 @@ export default ({
       변수, 상수 및 상태 정의
     **************************************************/
   const [draftTodo, setDraftTodo] = useState(todo);
-  const [clickedChips, setClickedChips] = useState<Record<string, boolean>>({}); // 작업유형 클릭여부
+  const [clickedChips, setClickedChips] = useState<Record<string, boolean>>({
+    ...todo.todoType,
+  }); // 작업유형 클릭여부
   const {
+    isEditing,
     todoList,
     todoTypeList,
     priorityScheme,
@@ -52,26 +56,23 @@ export default ({
 
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [hover, setHover] = React.useState(-1);
+  const isInitialMount = useRef(true);
 
   /**************************************************
       useEffect
    **************************************************/
-  // 다이얼로그가 열릴 때마다 초기값을 업데이트
   useEffect(() => {
-    setDraftTodo(todo);
-    setClickedChips({
-      ...todo.todoType,
-    });
-  }, [todo, open]);
+    if (todoList === undefined) return;
 
-  useEffect(() => {
-    setTodoList(
-      todoList.map((item) => {
-        return item.id === draftTodo.id ? draftTodo : item;
-      }),
-    );
-    setUpdatedTodos(draftTodo);
-    setIsEditing(true);
+    if (!isEqual(todo, draftTodo)) {
+      setTodoList(
+        todoList.map((item) => {
+          return item.id === draftTodo.id ? draftTodo : item;
+        }),
+      );
+      setIsEditing(true);
+      setUpdatedTodos(draftTodo);
+    }
   }, [draftTodo]);
 
   /**************************************************

@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // firestore
-import { doc, writeBatch } from "firebase/firestore";
+import { doc, setDoc, writeBatch } from "firebase/firestore";
 import fireStore from "../../firebase/firestore";
 
 // MUI
@@ -31,7 +31,7 @@ import { SortableContext } from "@dnd-kit/sortable";
 
 // custom
 import TodoListBox from "./TodoListBox";
-import { TODO } from "./Todo_T01";
+import { REPORT, TODO } from "./Todo_T01";
 import Todo from "@/app/todolist/Todo";
 import { useFocus } from "@/app/components/FocusContext";
 import { useTodoStore } from "@/app/todolist/todoStore";
@@ -56,9 +56,11 @@ export default function Todolist() {
   const [deltaY, setDeltaY] = useState<number>(0); // 드래그중 마우스 이동 변위
   const { setFocusedId } = useFocus();
   const debounceDelay = Number(process.env.NEXT_PUBLIC_DEBOUNCE_DELAY); // 자동저장 주기(debounce)
+  const prevReportRef = useRef<REPORT | undefined>(undefined);
   const {
     isEditing,
     todoList,
+    report,
     updatedTodos,
     activeId,
     overlayItem,
@@ -140,15 +142,16 @@ export default function Todolist() {
 
     // todoList와 todoTypeList 초기화
     // initTodo는 Unsubscribe 함수를 return한다. 이것을 cleanup으로 등록한다.
-    const unsubscribe = initTodo();
+    const { unsubscribeTodo, unsubscribeReport } = initTodo();
     return () => {
-      unsubscribe();
+      unsubscribeTodo();
+      unsubscribeReport();
     };
   }, []);
 
   // to do상태(status)별 ord 업데이트
   useEffect(() => {
-    if (todoList.length != 0) {
+    if (todoList !== undefined && todoList.length !== 0) {
       setMaxStageId({
         PENDING:
           todoList.filter((todo) => todo.status === "PENDING")[0]?.ord ?? 0,
@@ -162,21 +165,30 @@ export default function Todolist() {
 
   // 마지막 수정 후 2초간 입력 없으면 저장
   useEffect(() => {
-    if (isEditing && updatedTodos) {
+    if (isEditing) {
       const timer = setTimeout(async () => {
         // 1) 배치 인스턴스 생성
         const batch = writeBatch(fireStore);
 
-        // 2) updateTodos에 들어있는 to do만 작업등록
+        // 2 - 1) 주간보고서 업데이트
+        if (report !== prevReportRef.current) {
+          const docRef = doc(fireStore, "todo", "userId_01", "report", "1");
+          await setDoc(docRef, report);
+          prevReportRef.current = report;
+        }
+
+        // 2 - 2) updateTodos에 들어있는 to do만 작업등록
         updatedTodos.forEach((updatedTodo) => {
-          const docRef = doc(
-            fireStore,
-            "todo",
-            "userId_01",
-            "todoItem",
-            updatedTodo.id,
-          );
-          batch.update(docRef, updatedTodo);
+          if (todoList?.some((item) => item.id === updatedTodo.id)) {
+            const docRef = doc(
+              fireStore,
+              "todo",
+              "userId_01",
+              "todoItem",
+              updatedTodo.id,
+            );
+            batch.update(docRef, updatedTodo);
+          }
         });
 
         // 3) 모든 작업대상 아이템을 등록한 후, 배치 커밋
@@ -188,7 +200,7 @@ export default function Todolist() {
 
       return () => clearTimeout(timer); // 입력이 이어지면 이전 타이머 취소
     }
-  }, [updatedTodos, isEditing]);
+  }, [updatedTodos, report, isEditing]);
 
   /**************************************************
     EventHandler
@@ -215,6 +227,7 @@ export default function Todolist() {
     setOverlayItem(null);
     // 드롭 대상이 없으면 무시
     if (!active || !over) return;
+    if (todoList === undefined || todoList.length === 0) return;
     // 데이터 타입을 명시적으로 지정
     const activeData = active.data.current as
       | {
@@ -369,7 +382,7 @@ export default function Todolist() {
         onDragMove={handleDragging}
         onDragCancel={handleDragCancel}
       >
-        <SortableContext items={todoList.map((todo) => todo.id)}>
+        <SortableContext items={todoList?.map((todo) => todo.id) ?? []}>
           <Grid container spacing={2} sx={{ height: "inherit" }}>
             {statusList ? (
               statusList.map((status) => (
@@ -391,12 +404,14 @@ export default function Todolist() {
                       {statusIcon(status)}
                       <Typography sx={{ ml: 1 }}>{status}</Typography>
                     </Box>
-                    <TodoListBox
-                      status={status}
-                      filteredList={todoList.filter(
-                        (todo) => todo.status === status,
-                      )}
-                    />
+                    {todoList && (
+                      <TodoListBox
+                        status={status}
+                        filteredList={todoList.filter(
+                          (todo) => todo.status === status,
+                        )}
+                      />
+                    )}
                   </Box>
                 </Grid>
               ))

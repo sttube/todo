@@ -2,11 +2,16 @@
 import { Tab, Tabs, Typography } from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
-import React from "react";
+import React, { useEffect } from "react";
 
 export default function Navigation() {
   const router = useRouter();
   const pathname = usePathname();
+
+  // 최초에 "/todolist"로 리다이렉트
+  useEffect(() => {
+    router.replace("/todolist");
+  }, [router]);
 
   // 탭 변경 시 라우팅 처리
   const handleTabChange = (event: React.SyntheticEvent, newValue: any) => {
@@ -52,7 +57,6 @@ export default function Navigation() {
           }}
         />
       </Tabs>
-      <Box></Box>
     </Box>
   );
 }

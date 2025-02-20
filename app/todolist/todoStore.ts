@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { TODO } from "@/app/todolist/Todo_T01";
+import { REPORT, TODO } from "@/app/todolist/Todo_T01";
 import {
   collection,
   deleteDoc,
@@ -50,7 +50,8 @@ interface TodoState {
    */
 
   isEditing: boolean;
-  todoList: TODO[];
+  todoList?: TODO[];
+  report?: REPORT;
   todoTypeList: TYPE_ITEM[];
   updatedTodos: TODO[];
   newTodoId: string | null;
@@ -61,11 +62,15 @@ interface TodoState {
 
   setIsEditing: (value: boolean) => void;
   setTodoList: (todoList: TODO[]) => void;
+  setReport: (report: REPORT | undefined) => void;
   setUpdatedTodos: (id: TODO | undefined) => void;
   setActiveId: (id: string | null) => void;
   setOverlayItem: (todo: TODO | null) => void;
 
-  initTodo: () => Unsubscribe;
+  initTodo: () => {
+    unsubscribeTodo: Unsubscribe;
+    unsubscribeReport: Unsubscribe;
+  };
   addTodo: () => void;
   updateTodo: (todo: TODO) => void;
   removeTodo: (id: string) => void;
@@ -74,7 +79,7 @@ interface TodoState {
 // @ts-ignore
 export const useTodoStore = create<TodoState>((set) => ({
   isEditing: false,
-  todoList: [],
+  todoList: undefined,
   todoTypeList: [],
   updatedTodos: [],
   newTodoId: "",
@@ -107,6 +112,7 @@ export const useTodoStore = create<TodoState>((set) => ({
 
   setIsEditing: (value: boolean) => set({ isEditing: value }),
   setTodoList: (todoList: TODO[]) => set({ todoList: todoList }),
+  setReport: (report: REPORT | undefined) => set({ report: report }),
   setUpdatedTodos: (todo?: TODO) =>
     set((prevState: TodoState) => {
       // 만약 to do가 undefined라면 배열을 초기화
@@ -156,12 +162,26 @@ export const useTodoStore = create<TodoState>((set) => ({
       orderBy("ord", "desc"),
     );
 
-    return onSnapshot(todoQuery, (snapshot) => {
+    const unsubscribeTodo = onSnapshot(todoQuery, (snapshot) => {
       if (!snapshot.empty) {
         const newTodoList = snapshot.docs.map((doc) => doc.data()) as TODO[];
         set(() => ({ todoList: newTodoList }));
       }
     });
+
+    const reportQuery = query(
+      collection(fireStore, "todo", "userId_01", "report"),
+      limit(1),
+    );
+
+    const unsubscribeReport = onSnapshot(reportQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        const newReport = snapshot.docs.map((doc) => <REPORT>doc.data())[0];
+        set(() => ({ report: newReport }));
+      }
+    });
+
+    return { unsubscribeTodo, unsubscribeReport };
   },
   addTodo: async () => {
     try {
@@ -198,8 +218,8 @@ export const useTodoStore = create<TodoState>((set) => ({
     }
   },
   updateTodo: (updatedTodo: TODO) =>
-    set((state: TodoState) => ({
-      todoList: state.todoList.map((todo: TODO) =>
+    set((prevState: TodoState) => ({
+      todoList: prevState.todoList?.map((todo: TODO) =>
         todo.id === updatedTodo.id ? updatedTodo : todo,
       ),
     })),
@@ -207,6 +227,10 @@ export const useTodoStore = create<TodoState>((set) => ({
     const todoRef = doc(fireStore, "todo", "userId_01", "todoItem", id);
     try {
       await deleteDoc(todoRef);
+      // updated 목록에서 id가 일치하는 아이템 제거
+      set((prevState: TodoState) => ({
+        updatedTodos: prevState.updatedTodos.filter((todo) => todo.id !== id),
+      }));
     } catch (error) {
       console.log("TODO 아이템을 제거하는 과정에서 오류가 발생하였습니다.");
     }
